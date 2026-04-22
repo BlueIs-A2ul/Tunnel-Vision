@@ -16,7 +16,7 @@ const routes = [
       {
         path: 'dashboard',
         name: 'Dashboard',
-        component: () => import('@/views/Home/Home.vue'),
+        component: () => import('@/views/Dashboard/Dashboard.vue'),
         meta: { title: '实时监控', requiresAuth: true },
       },
       {
