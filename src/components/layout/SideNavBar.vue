@@ -16,9 +16,9 @@ const props = defineProps<{
 const route = useRoute()
 
 const menuItems = [
-  { path: '/', icon: Monitor, title: '实时监控' },
+  { path: '/dashboard', icon: DataAnalysis, title: '数据分析' },
+  { path: '/monitor', icon: Monitor, title: '实时监控' },
   { path: '/cameras', icon: VideoCamera, title: '摄像头管理' },
-  { path: '/analysis', icon: DataAnalysis, title: '数据分析' },
   { path: '/users', icon: User, title: '用户管理' },
   { path: '/settings', icon: Setting, title: '系统设置' },
 ]

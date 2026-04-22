@@ -16,7 +16,13 @@ const routes = [
       {
         path: 'dashboard',
         name: 'Dashboard',
-        component: () => import('@/views/Home/Home.vue'),
+        component: () => import('@/views/Dashboard/Dashboard.vue'),
+        meta: { title: '数据分析', requiresAuth: true },
+      },
+      {
+        path: 'monitor',
+        name: 'Monitor',
+        component: () => import('@/views/Monitor/Monitor.vue'),
         meta: { title: '实时监控', requiresAuth: true },
       },
       {
@@ -24,12 +30,6 @@ const routes = [
         name: 'Cameras',
         component: () => import('@/views/Home/Home.vue'),
         meta: { title: '摄像头管理', requiresAuth: true },
-      },
-      {
-        path: 'analysis',
-        name: 'Analysis',
-        component: () => import('@/views/Home/Home.vue'),
-        meta: { title: '数据分析', requiresAuth: true },
       },
       {
         path: 'users',
