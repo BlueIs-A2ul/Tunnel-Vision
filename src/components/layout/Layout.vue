@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { Fold, Expand } from '@element-plus/icons-vue'
 import SideNavBar from './SideNavBar.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 
 const isCollapse = ref(false)
@@ -16,8 +17,9 @@ function toggleSidebar() {
   isCollapse.value = !isCollapse.value
 }
 
-function handleLogout() {
-  authStore.logout()
+async function handleLogout() {
+  await authStore.logout()
+  router.push('/login')
 }
 
 const currentDate = computed(() => {

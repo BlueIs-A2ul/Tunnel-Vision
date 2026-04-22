@@ -38,7 +38,7 @@ async function handleSubmit() {
     ElMessage.success('登录成功')
 
     const redirect = route.query.redirect as string
-    router.push(redirect || '/')
+    await router.push(redirect || '/dashboard')
   } catch (error: any) {
     ElMessage.error(error.message || '登录失败')
   } finally {
