@@ -32,6 +32,12 @@ const routes = [
         meta: { title: '摄像头管理', requiresAuth: true },
       },
       {
+        path: 'vehicle-log',
+        name: 'VehicleLog',
+        component: () => import('@/views/VehicleLog/VehicleLog.vue'),
+        meta: { title: '车辆归档日志', requiresAuth: true },
+      },
+      {
         path: 'users',
         name: 'Users',
         component: () => import('@/views/Home/Home.vue'),
@@ -52,7 +58,7 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   const authStore = useAuthStore()
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {

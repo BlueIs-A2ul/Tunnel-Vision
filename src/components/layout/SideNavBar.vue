@@ -7,9 +7,10 @@ import {
   DataAnalysis,
   Setting,
   User,
+  Document,
 } from '@element-plus/icons-vue'
 
-const props = defineProps<{
+defineProps<{
   isCollapse: boolean
 }>()
 
@@ -19,6 +20,7 @@ const menuItems = [
   { path: '/dashboard', icon: DataAnalysis, title: '数据分析' },
   { path: '/monitor', icon: Monitor, title: '实时监控' },
   { path: '/cameras', icon: VideoCamera, title: '摄像头管理' },
+  { path: '/vehicle-log', icon: Document, title: '车辆归档日志' },
   { path: '/users', icon: User, title: '用户管理' },
   { path: '/settings', icon: Setting, title: '系统设置' },
 ]
