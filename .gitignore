@@ -10,7 +10,12 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+dist-electron/
 *.local
+
+# Auto-generated type declarations
+auto-imports.d.ts
+components.d.ts
 
 # Editor directories and files
 .vscode/*
