@@ -11,7 +11,18 @@ export interface LoginParams {
   rememberMe?: boolean
 }
 
+export interface RegisterParams {
+  username: string
+  password: string
+  confirmPassword: string
+}
+
 export interface LoginResponse {
+  token: string
+  user: User
+}
+
+export interface RegisterResponse {
   token: string
   user: User
 }

@@ -1,4 +1,4 @@
-import type { LoginParams, LoginResponse, User } from '@/types/user'
+import type { LoginParams, LoginResponse, RegisterParams, RegisterResponse, User } from '@/types/user'
 
 const MOCK_USERS: User[] = [
   { id: 1, username: 'admin', role: 'admin', createdAt: '2024-01-01' },
@@ -50,6 +50,41 @@ async function mockLogin(params: LoginParams): Promise<LoginResponse> {
 export async function logout(): Promise<void> {
   if (USE_MOCK) return
   await fetch('/api/auth/logout', { method: 'POST' })
+}
+
+export async function register(params: RegisterParams): Promise<RegisterResponse> {
+  if (USE_MOCK) {
+    return mockRegister(params)
+  }
+  const response = await fetch('/api/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  })
+  if (!response.ok) throw new Error('Registration failed')
+  return response.json()
+}
+
+async function mockRegister(params: RegisterParams): Promise<RegisterResponse> {
+  await new Promise((resolve) => setTimeout(resolve, 500))
+
+  if (MOCK_USERS.find((u) => u.username === params.username)) {
+    throw new Error('用户名已存在')
+  }
+
+  const newUser: User = {
+    id: MOCK_USERS.length + 1,
+    username: params.username,
+    role: 'user',
+    createdAt: new Date().toISOString().split('T')[0],
+  }
+  MOCK_USERS.push(newUser)
+  MOCK_PASSWORDS[params.username] = params.password
+
+  return {
+    token: generateToken(newUser),
+    user: newUser,
+  }
 }
 
 export async function getCurrentUser(): Promise<User | null> {

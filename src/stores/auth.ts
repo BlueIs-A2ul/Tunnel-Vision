@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { User, LoginParams } from '@/types/user'
+import type { User, LoginParams, RegisterParams } from '@/types/user'
 import * as authApi from '@/api/auth'
 
 export const useAuthStore = defineStore('auth', () => {
@@ -14,16 +14,26 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function login(params: LoginParams) {
     const response = await authApi.login(params)
-    
+
     const storage = params.rememberMe ? localStorage : sessionStorage
-    
+
     storage.setItem('token', response.token)
     storage.setItem('user', JSON.stringify(response.user))
-    
+
     if (params.rememberMe) {
       localStorage.setItem('rememberMe', 'true')
     }
-    
+
+    token.value = response.token
+    user.value = response.user
+  }
+
+  async function register(params: RegisterParams) {
+    const response = await authApi.register(params)
+
+    localStorage.setItem('token', response.token)
+    localStorage.setItem('user', JSON.stringify(response.user))
+
     token.value = response.token
     user.value = response.user
   }
@@ -60,6 +70,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     isAdmin,
     login,
+    register,
     logout,
     init,
   }
