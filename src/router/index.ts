@@ -40,7 +40,7 @@ const routes = [
       {
         path: 'users',
         name: 'Users',
-        component: () => import('@/views/Home/Home.vue'),
+        component: () => import('@/views/Users/Users.vue'),
         meta: { title: '用户管理', requiresAuth: true },
       },
       {
