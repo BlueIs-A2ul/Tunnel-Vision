@@ -42,7 +42,7 @@ const initChart = () => {
       axisLine: { lineStyle: { color: '#034c6a' } },
       axisLabel: {
         color: '#ffffff',
-        interval: 1, // 每隔一个标签显示，即间隔6小时
+        interval: 1,
       },
     },
     yAxis: {
@@ -85,57 +85,12 @@ defineExpose({ resize: () => chartInstance?.resize() })
 </script>
 
 <template>
-  <div class="chart-wrapper">
-    <div class="chart-title">
-      <i class="title_icon"></i>日流量趋势
+  <div class="relative w-full h-[280px] mt-[25px] box-border border border-[#034c6a] bg-[#081832]"
+    style="box-shadow: -10px 0 15px #034c6a inset, 0 -10px 15px #034c6a inset, 10px 0 15px #034c6a inset, 0 10px 15px #034c6a inset;">
+    <div
+      class="absolute -top-3.75 left-[20%] w-[60%] h-[35px] bg-[#034c6a] rounded-[18px] text-white font-bold text-base leading-[35px] text-center z-10">
+      日流量趋势
     </div>
-    <div ref="chartRef" class="chart-content"></div>
+    <div ref="chartRef" class="h-62.5 p-[5px_10px] mt-3.75"></div>
   </div>
 </template>
-
-<style scoped>
-.chart-wrapper {
-  width: 100%;
-  height: 280px;
-  box-shadow: -10px 0px 15px #034c6a inset,
-    0px -10px 15px #034c6a inset,
-    10px 0px 15px #034c6a inset,
-    0px 10px 15px #034c6a inset;
-  border: 1px solid #034c6a;
-  box-sizing: border-box;
-  position: relative;
-  margin-top: 25px;
-}
-
-.chart-title {
-  background-color: #034c6a;
-  border-radius: 18px;
-  position: absolute;
-  height: 35px;
-  width: 60%;
-  top: -15px;
-  color: #ffffff;
-  font-weight: bold;
-  font-size: 16px;
-  left: 20%;
-  line-height: 35px;
-  text-align: center;
-}
-
-.title_icon {
-  width: 18px;
-  height: 18px;
-  display: inline-block;
-  position: relative;
-  top: 2px;
-  margin-right: 5px;
-  background: #ffffff no-repeat center;
-  background-size: contain;
-}
-
-.chart-content {
-  height: 250px;
-  padding: 5px 10px;
-  margin-top: 15px;
-}
-</style>
