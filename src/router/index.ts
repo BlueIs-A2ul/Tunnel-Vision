@@ -5,7 +5,13 @@ const routes = [
   {
     path: '/login',
     name: 'Login',
-    component: () => import('@/views/Login/Login.vue'),
+    component: () => import('@/views/Auth/Auth.vue'),
+    meta: { requiresAuth: false },
+  },
+  {
+    path: '/register',
+    name: 'Register',
+    component: () => import('@/views/Auth/Auth.vue'),
     meta: { requiresAuth: false },
   },
   {
@@ -63,7 +69,10 @@ router.beforeEach((to, _from, next) => {
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next({ name: 'Login', query: { redirect: to.fullPath } })
-  } else if (to.name === 'Login' && authStore.isAuthenticated) {
+  } else if (
+    (to.name === 'Login' || to.name === 'Register') &&
+    authStore.isAuthenticated
+  ) {
     next({ path: '/dashboard' })
   } else {
     next()
