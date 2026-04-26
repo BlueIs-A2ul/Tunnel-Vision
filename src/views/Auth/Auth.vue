@@ -11,20 +11,24 @@ const authStore = useAuthStore()
 
 const formRef = ref<FormInstance>()
 const loading = ref(false)
-const mode = ref<'login' | 'register'>('login')
 
+// 当前 Tab: 'login' | 'register'
+const activeTab = ref<'login' | 'register'>(route.path.includes('register') ? 'register' : 'login')
+
+// 登录表单
 const loginForm = ref({
   username: '',
   password: '',
-  rememberMe: false,
 })
 
+// 注册表单
 const registerForm = ref({
   username: '',
   password: '',
   confirmPassword: '',
 })
 
+// 表单验证规则
 const loginRules: FormRules = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
@@ -54,6 +58,18 @@ const registerRules: FormRules = {
   ],
 }
 
+// 切换 Tab
+function switchTab(tab: 'login' | 'register') {
+  activeTab.value = tab
+  // 更新路由
+  if (tab === 'login') {
+    router.push('/login')
+  } else {
+    router.push('/register')
+  }
+}
+
+// 登录处理
 async function handleLogin() {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
@@ -63,7 +79,6 @@ async function handleLogin() {
     await authStore.login({
       username: loginForm.value.username,
       password: loginForm.value.password,
-      rememberMe: loginForm.value.rememberMe,
     })
 
     ElMessage.success('登录成功')
@@ -77,6 +92,7 @@ async function handleLogin() {
   }
 }
 
+// 注册处理
 async function handleRegister() {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
@@ -86,7 +102,6 @@ async function handleRegister() {
     await authStore.register({
       username: registerForm.value.username,
       password: registerForm.value.password,
-      confirmPassword: registerForm.value.confirmPassword,
     })
 
     ElMessage.success('注册成功')
@@ -100,18 +115,23 @@ async function handleRegister() {
   }
 }
 
-function switchMode(newMode: 'login' | 'register') {
-  mode.value = newMode
-  formRef.value?.clearValidate()
+// 跳转到登录
+function goToLogin() {
+  router.push('/login')
+}
+
+// 跳转到注册
+function goToRegister() {
+  router.push('/register')
 }
 </script>
 
 <template>
   <div class="min-h-screen flex flex-col items-center justify-center bg-[#f5f7fa]">
-    <!-- Login/Register Card -->
+    <!-- 登录注册卡片 -->
     <div class="w-[420px] bg-white rounded-2xl shadow-lg p-10">
       <!-- Logo & Title -->
-      <div class="flex flex-col items-center mb-8">
+      <div class="flex flex-col items-center mb-6">
         <!-- Logo Icon -->
         <div
           class="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center mb-4 shadow-md">
@@ -120,19 +140,33 @@ function switchMode(newMode: 'login' | 'register') {
             <circle cx="12" cy="12" r="3" />
           </svg>
         </div>
-        <h1 class="text-2xl font-semibold text-gray-800 mb-1">隧道监控系统</h1>
-        <p class="text-sm text-gray-500">{{ mode === 'login' ? '系统管理中心' : '用户注册' }}</p>
+        <h1 class="text-2xl font-semibold text-gray-800 mb-1">智慧隧道综合平台</h1>
+        <p class="text-sm text-gray-500">用户登录 / 注册</p>
       </div>
 
-      <!-- Login Form -->
-      <el-form v-if="mode === 'login'" ref="formRef" :model="loginForm" :rules="loginRules" label-position="top"
+      <!-- Tab 切换 -->
+      <div class="flex rounded-lg bg-gray-100 p-1 mb-6">
+        <button
+          :class="['flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all', activeTab === 'login' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700']"
+          @click="switchTab('login')">
+          登录
+        </button>
+        <button
+          :class="['flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all', activeTab === 'register' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700']"
+          @click="switchTab('register')">
+          注册
+        </button>
+      </div>
+
+      <!-- 登录表单 -->
+      <el-form v-if="activeTab === 'login'" ref="formRef" :model="loginForm" :rules="loginRules" label-position="top"
         @submit.prevent="handleLogin">
         <!-- Username -->
         <el-form-item prop="username" class="mb-5">
           <template #label>
             <span class="text-sm text-gray-700 font-medium">用户名</span>
           </template>
-          <el-input v-model="loginForm.username" placeholder="请输入用户名" size="large" class="login-input">
+          <el-input v-model="loginForm.username" placeholder="请输入用户名" size="large" class="auth-input">
             <template #prefix>
               <el-icon class="text-gray-400">
                 <User />
@@ -142,15 +176,12 @@ function switchMode(newMode: 'login' | 'register') {
         </el-form-item>
 
         <!-- Password -->
-        <el-form-item prop="password" required class="mb-6 password-field">
+        <el-form-item prop="password" class="mb-6">
           <template #label>
-            <div class="flex justify-between items-center w-full">
-              <span class="text-sm text-gray-700 font-medium">登录密码</span>
-              <a href="#" class="text-xs text-blue-500 hover:text-blue-600">忘记密码?</a>
-            </div>
+            <span class="text-sm text-gray-700 font-medium">密码</span>
           </template>
           <el-input v-model="loginForm.password" type="password" placeholder="请输入密码" size="large" show-password
-            class="login-input">
+            class="auth-input">
             <template #prefix>
               <el-icon class="text-gray-400">
                 <Lock />
@@ -169,13 +200,13 @@ function switchMode(newMode: 'login' | 'register') {
         <!-- Switch to Register -->
         <div class="mt-6 text-center text-sm text-gray-500">
           还没有账号?
-          <button type="button" class="text-blue-500 hover:text-blue-600 font-medium" @click="switchMode('register')">
+          <button type="button" class="text-blue-500 hover:text-blue-600 font-medium" @click="goToRegister">
             立即注册
           </button>
         </div>
       </el-form>
 
-      <!-- Register Form -->
+      <!-- 注册表单 -->
       <el-form v-else ref="formRef" :model="registerForm" :rules="registerRules" label-position="top"
         @submit.prevent="handleRegister">
         <!-- Username -->
@@ -183,8 +214,7 @@ function switchMode(newMode: 'login' | 'register') {
           <template #label>
             <span class="text-sm text-gray-700 font-medium">用户名</span>
           </template>
-          <el-input v-model="registerForm.username" placeholder="请输入用户名(3-20个字符)" size="large"
-            class="login-input">
+          <el-input v-model="registerForm.username" placeholder="请输入用户名(3-20个字符)" size="large" class="auth-input">
             <template #prefix>
               <el-icon class="text-gray-400">
                 <User />
@@ -199,7 +229,7 @@ function switchMode(newMode: 'login' | 'register') {
             <span class="text-sm text-gray-700 font-medium">密码</span>
           </template>
           <el-input v-model="registerForm.password" type="password" placeholder="请输入密码(至少6个字符)" size="large"
-            show-password class="login-input">
+            show-password class="auth-input">
             <template #prefix>
               <el-icon class="text-gray-400">
                 <Lock />
@@ -214,7 +244,7 @@ function switchMode(newMode: 'login' | 'register') {
             <span class="text-sm text-gray-700 font-medium">确认密码</span>
           </template>
           <el-input v-model="registerForm.confirmPassword" type="password" placeholder="请再次输入密码" size="large"
-            show-password class="login-input">
+            show-password class="auth-input">
             <template #prefix>
               <el-icon class="text-gray-400">
                 <Lock />
@@ -233,7 +263,7 @@ function switchMode(newMode: 'login' | 'register') {
         <!-- Switch to Login -->
         <div class="mt-6 text-center text-sm text-gray-500">
           已有账号?
-          <button type="button" class="text-blue-500 hover:text-blue-600 font-medium" @click="switchMode('login')">
+          <button type="button" class="text-blue-500 hover:text-blue-600 font-medium" @click="goToLogin">
             立即登录
           </button>
         </div>
@@ -242,48 +272,28 @@ function switchMode(newMode: 'login' | 'register') {
 
     <!-- Footer -->
     <div class="mt-8 text-center text-xs text-gray-400">
-      <p>© 2026 隧道监控系统</p>
-      <p v-if="mode === 'login'" class="mt-1">测试账号: admin / admin123 | user / user123</p>
+      <p>© 2026 智慧隧道综合平台</p>
     </div>
   </div>
 </template>
 
 <style scoped>
-.login-input :deep(.el-input__wrapper) {
+.auth-input :deep(.el-input__wrapper) {
   border-radius: 8px;
   box-shadow: 0 0 0 1px #e4e7ed inset;
   padding: 0 12px;
 }
 
-.login-input :deep(.el-input__wrapper.is-focus) {
+.auth-input :deep(.el-input__wrapper.is-focus) {
   box-shadow: 0 0 0 1px #3b82f6 inset;
 }
 
-.login-input :deep(.el-input__inner) {
+.auth-input :deep(.el-input__inner) {
   height: 44px;
 }
 
 :deep(.el-form-item__label) {
   padding-bottom: 8px !important;
   line-height: 1.5 !important;
-}
-
-/* 密码字段：必填星号与标签文本同行，忘记密码靠右 */
-.password-field :deep(.el-form-item__label) {
-  display: flex !important;
-  align-items: center !important;
-  width: 100% !important;
-}
-
-.password-field :deep(.el-form-item__label)::before {
-  margin-right: 4px !important;
-  position: static !important;
-}
-
-.password-field :deep(.el-form-item__label > div) {
-  flex: 1;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 }
 </style>
