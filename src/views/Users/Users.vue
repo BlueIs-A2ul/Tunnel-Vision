@@ -62,10 +62,10 @@ function openEditDialog(user: User) {
   dialogTitle.value = '编辑用户'
   isEdit.value = true
   form.value = {
-    id: user.id,
+    id: user.id!,
     username: user.username,
     password: '',
-    role: user.role,
+    role: user.role || 'user',
   }
   dialogVisible.value = true
 }
@@ -115,7 +115,7 @@ async function handleDelete(user: User) {
 
     loading.value = true
     try {
-      await deleteUser(user.id)
+      await deleteUser(user.id!)
       ElMessage.success('删除成功')
       await fetchUsers()
     } catch (error: any) {
@@ -134,61 +134,332 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="p-6">
-    <el-card>
-      <template #header>
-        <div class="flex justify-between items-center">
-          <h2 class="text-lg font-semibold">用户管理</h2>
-          <div class="flex gap-2">
-            <el-button type="primary" :icon="Plus" @click="openAddDialog">添加用户</el-button>
-            <el-button :icon="Refresh" @click="fetchUsers">刷新</el-button>
-          </div>
+  <div class="users-container">
+    <div class="users-content">
+      <!-- 标题 -->
+      <div class="page-header">
+        <div class="header-title">
+          <i class="title-icon"></i>
+          用户管理
         </div>
-      </template>
+      </div>
 
-      <el-table v-loading="loading" :data="users" stripe class="w-full">
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="username" label="用户名" min-width="150" />
-        <el-table-column prop="role" label="角色" width="120">
-          <template #default="{ row }">
-            <el-tag :type="row.role === 'admin' ? 'danger' : 'success'" size="small">
-              {{ row.role === 'admin' ? '管理员' : '普通用户' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="createdAt" label="创建日期" width="150" />
-        <el-table-column label="操作" width="150" fixed="right">
-          <template #default="{ row }">
-            <el-button type="primary" link :icon="Edit" size="small" @click="openEditDialog(row)">
-              编辑
-            </el-button>
-            <el-button type="danger" link :icon="Delete" size="small" @click="handleDelete(row)">
-              删除
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
+      <!-- 操作栏 -->
+      <div class="action-bar">
+        <el-button type="primary" class="action-btn primary" @click="openAddDialog">
+          <Plus /> 添加用户
+        </el-button>
+        <el-button class="action-btn" @click="fetchUsers">
+          <Refresh /> 刷新
+        </el-button>
+      </div>
 
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="450px" destroy-on-close>
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
-        <el-form-item prop="username" :label="isEdit ? '用户名' : '用户名'">
-          <el-input v-model="form.username" :placeholder="isEdit ? '不修改请留空' : '请输入用户名'" :disabled="isEdit" />
+      <!-- 数据表格 -->
+      <div class="table-wrapper">
+        <el-table v-loading="loading" :data="users" class="users-table"
+          :header-cell-style="{ background: '#034c6a', color: '#ffffff', border: 'none' }"
+          :cell-style="{ background: '#081832', color: '#ffffff', borderColor: '#034c6a' }">
+          <el-table-column prop="id" label="ID" width="100" align="center" />
+          <el-table-column prop="username" label="用户名" min-width="150" align="center" />
+          <el-table-column prop="role" label="角色" width="150" align="center">
+            <template #default="{ row }">
+              <span :class="['role-tag', row.role === 'admin' ? 'admin' : 'user']">
+                {{ row.role === 'admin' ? '管理员' : '普通用户' }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="createdAt" label="创建日期" width="180" align="center" />
+          <el-table-column label="操作" width="180" align="center">
+            <template #default="{ row }">
+              <el-button type="primary" link class="table-btn" @click="openEditDialog(row)">
+                <Edit /> 编辑
+              </el-button>
+              <el-button type="danger" link class="table-btn delete" @click="handleDelete(row)">
+                <Delete /> 删除
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+    </div>
+
+    <!-- 添加/编辑对话框 -->
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="450px" class="users-dialog"
+      :close-on-click-modal="false" destroy-on-close>
+      <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
+        <el-form-item prop="username" label="用户名">
+          <el-input v-model="form.username" :placeholder="isEdit ? '不修改请留空' : '请输入用户名'" :disabled="isEdit"
+            class="dialog-input" />
         </el-form-item>
-        <el-form-item prop="password" :label="isEdit ? '密码' : '密码'">
-          <el-input v-model="form.password" type="password" show-password :placeholder="isEdit ? '不修改请留空' : '请输入密码'" />
+        <el-form-item prop="password" :label="isEdit ? '新密码' : '密码'">
+          <el-input v-model="form.password" type="password" show-password :placeholder="isEdit ? '不修改请留空' : '请输入密码'"
+            class="dialog-input" />
         </el-form-item>
         <el-form-item prop="role" label="角色">
-          <el-select v-model="form.role" class="w-full">
+          <el-select v-model="form.role" class="dialog-select">
             <el-option label="管理员" value="admin" />
             <el-option label="普通用户" value="user" />
           </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="loading" @click="handleSubmit">确定</el-button>
+        <el-button class="dialog-btn" @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" class="dialog-btn primary" :loading="loading" @click="handleSubmit">
+          确定
+        </el-button>
       </template>
     </el-dialog>
   </div>
 </template>
+
+<style scoped>
+.users-container {
+  min-height: 100vh;
+  background-color: #081832;
+  padding: 20px;
+}
+
+.users-content {
+  width: 98%;
+  margin: 0 auto;
+}
+
+/* 页面标题 */
+.page-header {
+  margin-bottom: 20px;
+}
+
+.header-title {
+  background-color: #034c6a;
+  border-radius: 18px;
+  display: inline-block;
+  padding: 8px 30px;
+  color: #ffffff;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.title-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+  position: relative;
+  top: 2px;
+  margin-right: 8px;
+  background: #ffffff no-repeat center;
+  background-size: contain;
+}
+
+/* 操作栏 */
+.action-bar {
+  margin-bottom: 20px;
+  display: flex;
+  gap: 15px;
+}
+
+.action-btn {
+  background-color: transparent !important;
+  border: 1px solid #034c6a !important;
+  color: #ffffff !important;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.action-btn:hover {
+  background-color: rgba(3, 76, 106, 0.3) !important;
+}
+
+.action-btn.primary {
+  background: linear-gradient(to bottom, #4b8df8, #25f3e6) !important;
+  border: none !important;
+  color: #ffffff !important;
+}
+
+.action-btn.primary:hover {
+  opacity: 0.9;
+}
+
+/* 表格容器 */
+.table-wrapper {
+  box-shadow: -10px 0px 15px #034c6a inset,
+    0px -10px 15px #034c6a inset,
+    10px 0px 15px #034c6a inset,
+    0px 10px 15px #034c6a inset;
+  border: 1px solid #034c6a;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.users-table {
+  width: 100%;
+  background-color: #081832;
+}
+
+/* 角色标签 */
+.role-tag {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.role-tag.admin {
+  background-color: rgba(245, 108, 108, 0.2);
+  color: #f56c6c;
+  border: 1px solid #f56c6c;
+}
+
+.role-tag.user {
+  background-color: rgba(64, 158, 255, 0.2);
+  color: #409eff;
+  border: 1px solid #409eff;
+}
+
+/* 表格按钮 */
+.table-btn {
+  color: #4b8df8 !important;
+  font-size: 13px;
+  padding: 4px 8px !important;
+}
+
+.table-btn:hover {
+  color: #25f3e6 !important;
+}
+
+.table-btn.delete:hover {
+  color: #f56c6c !important;
+}
+
+/* 对话框样式 */
+.users-dialog :deep(.el-dialog) {
+  background-color: #081832 !important;
+  border: 1px solid #034c6a;
+  border-radius: 12px;
+}
+
+.users-dialog :deep(.el-dialog__header) {
+  background-color: #034c6a;
+  border-radius: 12px 12px 0 0;
+  padding: 15px 20px;
+}
+
+.users-dialog :deep(.el-dialog__title) {
+  color: #ffffff;
+  font-weight: bold;
+}
+
+.users-dialog :deep(.el-dialog__close) {
+  color: #ffffff;
+}
+
+.users-dialog :deep(.el-dialog__body) {
+  padding: 30px 20px;
+}
+
+.users-dialog :deep(.el-dialog__footer) {
+  padding: 15px 20px;
+  border-top: 1px solid #034c6a;
+}
+
+/* 表单项 */
+.users-dialog :deep(.el-form-item__label) {
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.users-dialog :deep(.el-form-item) {
+  margin-bottom: 20px;
+}
+
+/* 输入框 */
+.dialog-input :deep(.el-input__wrapper) {
+  background-color: #034c6a !important;
+  border: 1px solid #034c6a;
+  box-shadow: none;
+  padding: 0 12px;
+}
+
+.dialog-input :deep(.el-input__inner) {
+  color: #ffffff;
+  height: 40px;
+}
+
+.dialog-input :deep(.el-input__inner::placeholder) {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.dialog-input :deep(.el-input__wrapper.is-focus) {
+  border-color: #4b8df8;
+}
+
+.dialog-input :deep(.el-input__inner:disabled) {
+  color: rgba(255, 255, 255, 0.5);
+  background-color: rgba(3, 76, 106, 0.5);
+}
+
+/* 选择器 */
+.dialog-select :deep(.el-input__wrapper) {
+  background-color: #034c6a !important;
+  border: 1px solid #034c6a;
+  box-shadow: none;
+  padding: 0 12px;
+}
+
+.dialog-select :deep(.el-input__inner) {
+  color: #ffffff;
+  height: 40px;
+}
+
+.dialog-select :deep(.el-input__wrapper.is-focus) {
+  border-color: #4b8df8;
+}
+
+.dialog-select :deep(.el-select-dropdown) {
+  background-color: #081832;
+  border: 1px solid #034c6a;
+}
+
+.dialog-select :deep(.el-select-dropdown__item) {
+  color: #ffffff;
+}
+
+.dialog-select :deep(.el-select-dropdown__item.hover),
+.dialog-select :deep(.el-select-dropdown__item:hover) {
+  background-color: #034c6a;
+}
+
+.dialog-select :deep(.el-select-dropdown__item.selected) {
+  color: #4b8df8;
+}
+
+/* 对话框按钮 */
+.dialog-btn {
+  background-color: transparent !important;
+  border: 1px solid #034c6a !important;
+  color: #ffffff !important;
+}
+
+.dialog-btn:hover {
+  background-color: rgba(3, 76, 106, 0.3) !important;
+}
+
+.dialog-btn.primary {
+  background: linear-gradient(to bottom, #4b8df8, #25f3e6) !important;
+  border: none !important;
+  color: #ffffff !important;
+}
+
+/* 表格hover效果 */
+.users-table :deep(.el-table__row:hover > td) {
+  background-color: rgba(3, 76, 106, 0.3) !important;
+}
+
+/* 表格边框 */
+.users-table :deep(.el-table--border) {
+  border: none;
+}
+
+.users-table :deep(.el-table--border .el-table__cell) {
+  border-right: 1px solid #034c6a;
+}
+</style>

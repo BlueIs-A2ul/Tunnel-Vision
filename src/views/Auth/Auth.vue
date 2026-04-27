@@ -72,6 +72,7 @@ function switchTab(tab: 'login' | 'register') {
 // 登录处理
 async function handleLogin() {
   const valid = await formRef.value?.validate().catch(() => false)
+  console.log('登录表单验证结果:', valid)
   if (!valid) return
 
   loading.value = true
@@ -104,10 +105,18 @@ async function handleRegister() {
       password: registerForm.value.password,
     })
 
-    ElMessage.success('注册成功')
+    ElMessage.success('注册成功，请登录')
 
-    const redirect = route.query.redirect as string
-    await router.push(redirect || '/dashboard')
+    // 清空注册表单
+    registerForm.value = {
+      username: '',
+      password: '',
+      confirmPassword: '',
+    }
+
+    // 切换到登录状态
+    activeTab.value = 'login'
+    router.push('/login')
   } catch (error: any) {
     ElMessage.error(error.message || '注册失败')
   } finally {
@@ -197,13 +206,6 @@ function goToRegister() {
           立即登录
         </el-button>
 
-        <!-- Switch to Register -->
-        <div class="mt-6 text-center text-sm text-gray-500">
-          还没有账号?
-          <button type="button" class="text-blue-500 hover:text-blue-600 font-medium" @click="goToRegister">
-            立即注册
-          </button>
-        </div>
       </el-form>
 
       <!-- 注册表单 -->
