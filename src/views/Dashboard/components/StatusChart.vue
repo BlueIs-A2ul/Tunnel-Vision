@@ -25,21 +25,23 @@ const initChart = () => {
     },
     xAxis: {
       type: 'category',
-      data: ['行驶中', '静止', '维修中', '离线'],
+      data: ['C_01', 'C_02', 'C_03', 'C_04', 'C_05', 'C_06'],
       axisLine: { lineStyle: { color: '#034c6a' } },
       axisLabel: { color: '#ffffff' },
     },
     yAxis: {
       type: 'value',
+      name: '车辆数',
+      nameTextStyle: { color: '#ffffff' },
       axisLine: { lineStyle: { color: '#034c6a' } },
       axisLabel: { color: '#ffffff' },
       splitLine: { lineStyle: { color: '#034c6a' } },
     },
     series: [
       {
-        name: '车辆状态',
+        name: '车辆数',
         type: 'bar',
-        data: [8500, 2000, 1200, 656],
+        data: [125, 89, 156, 203, 78, 142],
         itemStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: '#4b8df8' },
@@ -68,7 +70,7 @@ defineExpose({ resize: () => chartInstance?.resize() })
 <template>
   <div class="chart-wrapper">
     <div class="chart-title">
-      <i class="title_icon"></i>车辆轨迹统计
+      <i class="title_icon"></i>摄像头下车辆数
     </div>
     <div ref="chartRef" class="chart-content"></div>
   </div>

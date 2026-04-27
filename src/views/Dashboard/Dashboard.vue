@@ -1,22 +1,19 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import NavHeader from '@/components/dashboard/NavHeader.vue'
-import StatsOverview from '@/components/dashboard/StatsOverview.vue'
-import TypeChart from '@/components/dashboard/TypeChart.vue'
-import StatusChart from '@/components/dashboard/StatusChart.vue'
-import TrendChart from '@/components/dashboard/TrendChart.vue'
-import AlarmChart from '@/components/dashboard/AlarmChart.vue'
-import RankingTable from '@/components/dashboard/RankingTable.vue'
-import MapPlaceholder from '@/components/dashboard/MapPlaceholder.vue'
-
-const activeNav = ref('data')
+import StatsOverview from '@/views/Dashboard/components/StatsOverview.vue'
+import TypeChart from '@/views/Dashboard/components/TypeChart.vue'
+import StatusChart from '@/views/Dashboard/components/StatusChart.vue'
+import TrendChart from '@/views/Dashboard/components/TrendChart.vue'
+import AlarmChart from '@/views/Dashboard/components/AlarmChart.vue'
+import RankingTable from '@/views/Dashboard/components/RankingTable.vue'
+import MapPlaceholder from '@/views/Dashboard/components/MapPlaceholder.vue'
 
 const stats = ref({
   totalVehicles: 12356,   // 累计特殊车辆总数
   usedVehicles: 856,      // 当前特殊车辆总数
   totalDistance: 256.8,   // 隧道总长(km)
   avgDistance: 128,       // 正常运行监控总数
-  totalDuration: 8,        // 高峰时段(小时数)
+  totalDuration: '7:00-8:00',        // 高峰时段(小时数)
   avgDuration: 12,         // 今日预警次数
 })
 
@@ -38,16 +35,10 @@ const vehicleRecords = ref<VehicleRecord[]>([
   { ID: 'ID_004', type: '小车', timeStamp: '2024-01-15 10:15', cameraID: 'C02', count: 2, photos: [], isDangerous: false },
   { ID: 'ID_005', type: '卡车', timeStamp: '2024-01-15 10:10', cameraID: 'C03', count: 4, photos: [], isDangerous: false },
 ])
-
-const handleNavUpdate = (value: string) => {
-  activeNav.value = value
-}
 </script>
 
 <template>
   <div class="dashboard-container">
-    <NavHeader :active-nav="activeNav" @update:active-nav="handleNavUpdate" />
-
     <div class="con">
       <!-- 总体概况 -->
       <StatsOverview :stats="stats" />
@@ -56,6 +47,7 @@ const handleNavUpdate = (value: string) => {
         <div class="div_any01">
           <!-- 车辆类型统计 -->
           <TypeChart />
+          <!-- 摄像头下车辆数 -->
           <StatusChart />
         </div>
         <div class="div_any02">

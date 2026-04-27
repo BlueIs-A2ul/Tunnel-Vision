@@ -7,7 +7,7 @@ defineProps<{
     usedVehicles: number   // 当前特殊车辆总数
     totalDistance: number   // 隧道总长(km)
     avgDistance: number     // 正常运行监控总数
-    totalDuration: number   // 高峰时段
+    totalDuration: string   // 高峰时段
     avgDuration: number     // 今日预警次数
   }
 }>()
