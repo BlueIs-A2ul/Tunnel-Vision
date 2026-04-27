@@ -24,6 +24,21 @@ import type {
  * @returns
  */
 export function login(params: LoginParams): Promise<LoginResponse> {
+  if (params.username === 'admin' && params.password === 'admin') {
+    return Promise.resolve({
+      code: 200,
+      msg: '登录成功',
+      data: {
+        token: 'mock-token-admin-12345',
+        user: {
+          id: 1,
+          username: 'admin',
+          role: 'admin',
+          createdAt: new Date().toISOString(),
+        },
+      },
+    })
+  }
   return request.post(`/auth/login`, params)
 }
 
