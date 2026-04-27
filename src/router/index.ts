@@ -64,18 +64,18 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach((to, _from, next) => {
+router.beforeEach((to, _from) => {
   const authStore = useAuthStore()
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    next({ name: 'Login', query: { redirect: to.fullPath } })
+    return { name: 'Login', query: { redirect: to.fullPath } }
   } else if (
     (to.name === 'Login' || to.name === 'Register') &&
     authStore.isAuthenticated
   ) {
-    next({ path: '/dashboard' })
+    return { path: '/dashboard' }
   } else {
-    next()
+    return true
   }
 })
 

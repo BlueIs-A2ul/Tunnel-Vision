@@ -11,6 +11,7 @@ import request from '@/utils/request'
 import type {
   LoginParams,
   LoginResponse,
+  LogoutResponse,
   RegisterParams,
   RegisterResponse,
   User,
@@ -24,22 +25,7 @@ import type {
  * @returns
  */
 export function login(params: LoginParams): Promise<LoginResponse> {
-  if (params.username === 'admin' && params.password === 'admin') {
-    return Promise.resolve({
-      code: 200,
-      msg: '登录成功',
-      data: {
-        token: 'mock-token-admin-12345',
-        user: {
-          id: 1,
-          username: 'admin',
-          role: 'admin',
-          createdAt: new Date().toISOString(),
-        },
-      },
-    })
-  }
-  return request.post(`/auth/login`, params)
+  return request.post(`/user/login`, params)
 }
 
 /**
@@ -58,8 +44,8 @@ export function register(params: RegisterParams): Promise<RegisterResponse> {
  * 用户登出
  * @returns
  */
-export function logout(): Promise<void> {
-  return request.post(`/auth/logout`)
+export function logout(): Promise<LogoutResponse> {
+  return request.post(`/user/logout`)
 }
 
 /**
