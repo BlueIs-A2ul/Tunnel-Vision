@@ -156,7 +156,7 @@ onMounted(() => {
 
       <!-- 数据表格 -->
       <div class="table-wrapper">
-        <el-table v-loading="loading" :data="users" class="users-table"
+        <el-table v-loading="loading" element-loading-background="rgba(8, 24, 50, 0.85)" :data="users" class="users-table"
           :header-cell-style="{ background: '#034c6a', color: '#ffffff', border: 'none' }"
           :cell-style="{ background: '#081832', color: '#ffffff', borderColor: '#034c6a' }">
           <el-table-column prop="id" label="ID" width="100" align="center" />
