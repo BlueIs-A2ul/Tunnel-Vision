@@ -15,13 +15,6 @@ defineProps<{
 
 <template>
   <div class="w-full">
-    <div class="w-35 h-9 mb-6 ml-[1%] pl-5">
-      <div class="left w-35 h-9 leading-9 bg-[#04425f] mb-6 pl-5 rounded-sm shadow-[0px_3px_3px_#61d2f7]">
-        <Icon icon="mdi:view-dashboard" class="w-4 h-4 inline-block relative mr-1.5 top-0.5 text-[#61d2f7]"></Icon>
-        <span class="text-[#25f3e6]">总体概况</span>
-      </div>
-    </div>
-
     <div class="con_div">
       <div class="con_div_text flex">
         <div class="con_div_text01">

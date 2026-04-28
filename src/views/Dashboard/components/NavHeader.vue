@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
 const router = useRouter()
-const authStore = useAuthStore()
 
 const currentDate = computed(() => {
   const date = new Date()
@@ -13,23 +11,23 @@ const currentDate = computed(() => {
 })
 
 const menuItems = [
-  { path: '/dashboard', title: '数据分析' },
+  { path: '/dashboard', title: '数据总览' },
   { path: '/monitor', title: '实时监控' },
-  { path: '/cameras', title: '摄像头管理' },
-  { path: '/vehicle-log', title: '车辆归档日志' },
+  { path: '/gallery', title: '图库管理' },
+  { path: '/features', title: '其他功能' },
   { path: '/users', title: '用户管理' },
   { path: '/settings', title: '系统设置' },
 ]
 
-const activeMenu = computed(() => route.path)
+const activeMenu = computed(() => {
+  const path = route.path
+  if (path.startsWith('/gallery')) return '/gallery'
+  if (path.startsWith('/features')) return '/features'
+  return path
+})
 
 function navigateTo(path: string) {
   router.push(path)
-}
-
-async function handleLogout() {
-  await authStore.logout()
-  router.push('/login')
 }
 </script>
 
@@ -62,12 +60,9 @@ async function handleLogout() {
       </button>
     </div>
 
-    <!-- 右侧日期和退出按钮 -->
+    <!-- 右侧日期 -->
     <div class="flex items-center gap-4">
       <div class="text-[#e8f7fe] text-sm">{{ currentDate }}</div>
-      <button @click="handleLogout" class="text-[#e8f7fe] hover:text-white text-sm transition-colors">
-        退出登录
-      </button>
     </div>
   </header>
 </template>

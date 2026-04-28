@@ -23,7 +23,7 @@ const routes = [
         path: 'dashboard',
         name: 'Dashboard',
         component: () => import('@/views/Dashboard/Dashboard.vue'),
-        meta: { title: '数据分析', requiresAuth: true },
+        meta: { title: '数据总览', requiresAuth: true },
       },
       {
         path: 'monitor',
@@ -32,16 +32,30 @@ const routes = [
         meta: { title: '实时监控', requiresAuth: true },
       },
       {
-        path: 'cameras',
-        name: 'Cameras',
-        component: () => import('@/views/Home/Home.vue'),
-        meta: { title: '摄像头管理', requiresAuth: true },
+        path: 'gallery',
+        component: () => import('@/views/Gallery/GalleryLayout.vue'),
+        redirect: '/gallery/vehicle-log',
+        children: [
+          {
+            path: 'vehicle-log',
+            name: 'VehicleLog',
+            component: () => import('@/views/Gallery/VehicleLog.vue'),
+            meta: { title: '车辆归档日志', requiresAuth: true },
+          },
+        ],
       },
       {
-        path: 'vehicle-log',
-        name: 'VehicleLog',
-        component: () => import('@/views/VehicleLog/VehicleLog.vue'),
-        meta: { title: '车辆归档日志', requiresAuth: true },
+        path: 'features',
+        component: () => import('@/views/Features/FeaturesLayout.vue'),
+        redirect: '/features/search-by-image',
+        children: [
+          {
+            path: 'search-by-image',
+            name: 'SearchByImage',
+            component: () => import('@/views/Features/SearchByImage.vue'),
+            meta: { title: '根据图像查询车辆信息', requiresAuth: true },
+          },
+        ],
       },
       {
         path: 'users',
@@ -52,7 +66,7 @@ const routes = [
       {
         path: 'settings',
         name: 'Settings',
-        component: () => import('@/views/Home/Home.vue'),
+        component: () => import('@/views/Settings/Settings.vue'),
         meta: { title: '系统设置', requiresAuth: true },
       },
     ],
