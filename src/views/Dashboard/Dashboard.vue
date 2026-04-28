@@ -9,12 +9,12 @@ import RankingTable from '@/views/Dashboard/components/RankingTable.vue'
 import MapPlaceholder from '@/views/Dashboard/components/MapPlaceholder.vue'
 
 const stats = ref({
-  totalVehicles: 12356,   // 累计特殊车辆总数
-  usedVehicles: 856,      // 当前特殊车辆总数
-  totalDistance: 256.8,   // 隧道总长(km)
-  avgDistance: 128,       // 正常运行监控总数
-  totalDuration: '7:00-8:00',        // 高峰时段(小时数)
-  avgDuration: 12,         // 今日预警次数
+  totalVehicles: 12356,
+  usedVehicles: 856,
+  totalDistance: 256.8,
+  avgDistance: 128,
+  totalDuration: '7:00-8:00',
+  avgDuration: 12,
 })
 
 interface VehicleRecord {
@@ -38,22 +38,28 @@ const vehicleRecords = ref<VehicleRecord[]>([
 </script>
 
 <template>
-  <div class="dashboard-container">
-    <div class="con">
+  <div class="min-h-screen bg-[#081832]">
+    <div class="w-[98%] mx-auto pt-5 pb-5 flex flex-col">
+      <div class="mb-5">
+        <div class="inline-block bg-[#034c6a] rounded-[18px] px-[30px] py-2 text-white font-bold text-lg">
+          <i class="inline-block w-[18px] h-[18px] relative top-0.5 mr-2 bg-white bg-center bg-no-repeat bg-contain"></i>
+          数据总览
+        </div>
+      </div>
       <!-- 总体概况 -->
       <StatsOverview :stats="stats" />
 
-      <div class="div_any">
-        <div class="div_any01">
+      <div class="w-full mb-[25px] h-[610px] flex justify-between">
+        <div class="w-[23%] flex flex-col gap-5">
           <!-- 车辆类型统计 -->
           <TypeChart />
           <!-- 摄像头下车辆数 -->
           <StatusChart />
         </div>
-        <div class="div_any02">
+        <div class="w-[48%]">
           <MapPlaceholder />
         </div>
-        <div class="div_any01">
+        <div class="w-[23%] flex flex-col gap-5">
           <!-- 日流量趋势 -->
           <TrendChart />
           <!-- 车辆时段分布 -->
@@ -61,57 +67,9 @@ const vehicleRecords = ref<VehicleRecord[]>([
         </div>
       </div>
 
-      <div class="div_table">
+      <div class="w-full mb-[25px] flex justify-between">
         <RankingTable title="车辆通行记录" :data="vehicleRecords" />
       </div>
     </div>
   </div>
 </template>
-
-<style scoped>
-.dashboard-container {
-  min-height: 100vh;
-  background-color: #081832;
-}
-
-.con {
-  width: 100%;
-  background-color: #081832;
-  padding-top: 20px;
-  padding-bottom: 20px;
-  display: flex;
-  flex-direction: column;
-}
-
-.div_any {
-  width: 98%;
-  margin-left: 1%;
-  margin-bottom: 25px;
-  height: 610px;
-  display: flex;
-  justify-content: space-between;
-}
-
-.div_any01 {
-  width: 23%;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.div_any02 {
-  width: 48%;
-}
-
-.div_table {
-  width: 98%;
-  margin-left: 1%;
-  margin-bottom: 25px;
-  display: flex;
-  justify-content: space-between;
-}
-
-.div_table_box {
-  width: 23%;
-}
-</style>
