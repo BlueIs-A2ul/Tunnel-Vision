@@ -129,10 +129,7 @@ function goToLogin() {
   router.push('/login')
 }
 
-// 跳转到注册
-function goToRegister() {
-  router.push('/register')
-}
+
 </script>
 
 <template>

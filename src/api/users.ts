@@ -49,7 +49,7 @@ export async function createUser(params: CreateUserParams): Promise<User> {
       throw new Error('用户名已存在')
     }
     const newUser: User = {
-      id: Math.max(...MOCK_USERS.map((u) => u.id)) + 1,
+      id: Math.max(...MOCK_USERS.map((u) => u.id ?? 0)) + 1,
       username: params.username,
       role: params.role,
       createdAt: new Date().toISOString().split('T')[0],
