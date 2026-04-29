@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
-import { ElMessage } from 'element-plus'
 import { VideoCamera } from '@element-plus/icons-vue'
 
 const rtspUrl = ref('')

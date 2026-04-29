@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { ElMessage } from 'element-plus'
 
 const selectedDate = ref(new Date().toISOString().split('T')[0])
 
