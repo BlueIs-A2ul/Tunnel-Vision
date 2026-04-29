@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { ElMessageBox } from 'element-plus'
 import { SwitchButton } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -46,11 +45,11 @@ async function handleLogout() {
                 <span class="text-[#61d2f7] text-sm">用户角色</span>
                 <span :class="[
                   'px-3 py-0.5 rounded-xl text-xs border',
-                  authStore.user?.role === 'admin'
+                  authStore.user?.isAdmin === 1
                     ? 'bg-[rgba(245,108,108,0.2)] text-[#f56c6c] border-[#f56c6c]'
                     : 'bg-[rgba(75,141,248,0.2)] text-[#4b8df8] border-[#4b8df8]'
                 ]">
-                  {{ authStore.user?.role === 'admin' ? '管理员' : '普通用户' }}
+                  {{ authStore.user?.isAdmin === 1 ? '管理员' : '普通用户' }}
                 </span>
               </div>
             </div>

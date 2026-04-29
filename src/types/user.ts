@@ -6,10 +6,8 @@ export interface User {
   id?: number
   /** 用户名 */
   username: string
-  /** 用户角色 */
-  role?: 'admin' | 'user'
-  /** 创建时间 */
-  createdAt?: string
+  /** 是否管理员：1=管理员, 0=普通用户 */
+  isAdmin?: number
 }
 
 /**

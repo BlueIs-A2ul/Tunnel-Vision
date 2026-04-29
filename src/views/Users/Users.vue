@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { Plus, Edit, Delete, Refresh } from '@element-plus/icons-vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { getUsers, createUser, updateUser, deleteUser } from '@/api/users'
 import { useAuthStore } from '@/stores/auth'
@@ -20,7 +19,7 @@ const form = ref({
   id: 0,
   username: '',
   password: '',
-  role: 'user' as 'admin' | 'user',
+  isAdmin: 0,
 })
 
 const rules: FormRules = {
@@ -29,10 +28,9 @@ const rules: FormRules = {
     { min: 3, max: 20, message: '用户名长度为3-20个字符', trigger: 'blur' },
   ],
   password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
     { min: 6, message: '密码至少6个字符', trigger: 'blur' },
   ],
-  role: [{ required: true, message: '请选择角色', trigger: 'change' }],
+  isAdmin: [{ required: true, message: '请选择角色', trigger: 'change' }],
 }
 
 async function fetchUsers() {
@@ -53,7 +51,7 @@ function openAddDialog() {
     id: 0,
     username: '',
     password: '',
-    role: 'user',
+    isAdmin: 0,
   }
   dialogVisible.value = true
 }
@@ -65,7 +63,7 @@ function openEditDialog(user: User) {
     id: user.id!,
     username: user.username,
     password: '',
-    role: user.role || 'user',
+    isAdmin: user.isAdmin ?? 0,
   }
   dialogVisible.value = true
 }
@@ -74,10 +72,18 @@ async function handleSubmit() {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
 
+  if (!isEdit.value && !form.value.password) {
+    ElMessage.warning('请输入密码')
+    return
+  }
+
   loading.value = true
   try {
     if (isEdit.value) {
-      const updateData: any = { role: form.value.role }
+      const updateData: any = { isAdmin: form.value.isAdmin }
+      if (form.value.username) {
+        updateData.username = form.value.username
+      }
       if (form.value.password) {
         updateData.password = form.value.password
       }
@@ -87,7 +93,7 @@ async function handleSubmit() {
       await createUser({
         username: form.value.username,
         password: form.value.password,
-        role: form.value.role,
+        isAdmin: form.value.isAdmin,
       })
       ElMessage.success('添加成功')
     }
@@ -163,12 +169,11 @@ onMounted(() => {
           <el-table-column prop="username" label="用户名" min-width="150" align="center" />
           <el-table-column prop="role" label="角色" width="150" align="center">
             <template #default="{ row }">
-              <span :class="['role-tag', row.role === 'admin' ? 'admin' : 'user']">
-                {{ row.role === 'admin' ? '管理员' : '普通用户' }}
+              <span :class="['role-tag', row.isAdmin === 1 ? 'admin' : 'user']">
+                {{ row.isAdmin === 1 ? '管理员' : '普通用户' }}
               </span>
             </template>
           </el-table-column>
-          <el-table-column prop="createdAt" label="创建日期" width="180" align="center" />
           <el-table-column label="操作" width="180" align="center">
             <template #default="{ row }">
               <el-button type="primary" link class="table-btn" @click="openEditDialog(row)">
@@ -184,30 +189,36 @@ onMounted(() => {
     </div>
 
     <!-- 添加/编辑对话框 -->
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="450px" class="users-dialog"
+    <el-dialog v-model="dialogVisible" title="" width="450px" class="users-dialog"
+      :show-close="false"
       :close-on-click-modal="false" destroy-on-close>
-      <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
-        <el-form-item prop="username" label="用户名">
-          <el-input v-model="form.username" :placeholder="isEdit ? '不修改请留空' : '请输入用户名'" :disabled="isEdit"
-            class="dialog-input" />
-        </el-form-item>
-        <el-form-item prop="password" :label="isEdit ? '新密码' : '密码'">
-          <el-input v-model="form.password" type="password" show-password :placeholder="isEdit ? '不修改请留空' : '请输入密码'"
-            class="dialog-input" />
-        </el-form-item>
-        <el-form-item prop="role" label="角色">
-          <el-select v-model="form.role" class="dialog-select">
-            <el-option label="管理员" value="admin" />
-            <el-option label="普通用户" value="user" />
-          </el-select>
-        </el-form-item>
-      </el-form>
-      <template #footer>
+      <div class="dialog-custom-header">
+        <span>{{ dialogTitle }}</span>
+      </div>
+      <div class="dialog-custom-body">
+        <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
+          <el-form-item prop="username" label="用户名">
+            <el-input v-model="form.username" :placeholder="isEdit ? '不修改请留空' : '请输入用户名'" :disabled="isEdit"
+              class="dialog-input" />
+          </el-form-item>
+          <el-form-item prop="password" :label="isEdit ? '新密码' : '密码'">
+            <el-input v-model="form.password" type="password" show-password :placeholder="isEdit ? '不修改请留空' : '请输入密码'"
+              class="dialog-input" />
+          </el-form-item>
+          <el-form-item prop="isAdmin" label="角色">
+            <el-select v-model="form.isAdmin" class="dialog-select">
+              <el-option label="管理员" :value="1" />
+              <el-option label="普通用户" :value="0" />
+            </el-select>
+          </el-form-item>
+        </el-form>
+      </div>
+      <div class="dialog-custom-footer">
         <el-button class="dialog-btn" @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" class="dialog-btn primary" :loading="loading" @click="handleSubmit">
           确定
         </el-button>
-      </template>
+      </div>
     </el-dialog>
   </div>
 </template>
@@ -331,6 +342,10 @@ onMounted(() => {
 }
 
 /* 对话框样式 */
+.users-dialog :deep(.el-overlay-dialog) {
+  background: transparent;
+}
+
 .users-dialog :deep(.el-dialog) {
   background-color: #081832 !important;
   border: 1px solid #034c6a;
@@ -338,27 +353,42 @@ onMounted(() => {
 }
 
 .users-dialog :deep(.el-dialog__header) {
-  background-color: #034c6a;
-  border-radius: 12px 12px 0 0;
-  padding: 15px 20px;
-}
-
-.users-dialog :deep(.el-dialog__title) {
-  color: #ffffff;
-  font-weight: bold;
-}
-
-.users-dialog :deep(.el-dialog__close) {
-  color: #ffffff;
+  display: none;
 }
 
 .users-dialog :deep(.el-dialog__body) {
-  padding: 30px 20px;
+  padding: 0;
 }
 
 .users-dialog :deep(.el-dialog__footer) {
-  padding: 15px 20px;
+  display: none;
+}
+
+.dialog-custom-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: #034c6a;
+  color: #fff;
+  border-radius: 12px 12px 0 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.dialog-custom-body {
+  padding: 24px 20px;
+  background: #081832;
+}
+
+.dialog-custom-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 20px;
   border-top: 1px solid #034c6a;
+  background: #072951;
+  border-radius: 0 0 12px 12px;
 }
 
 /* 表单项 */
@@ -398,7 +428,8 @@ onMounted(() => {
 }
 
 /* 选择器 */
-.dialog-select :deep(.el-input__wrapper) {
+.dialog-select :deep(.el-input__wrapper),
+.dialog-select :deep(.el-select__wrapper) {
   background-color: #034c6a !important;
   border: 1px solid #034c6a;
   box-shadow: none;
@@ -461,5 +492,13 @@ onMounted(() => {
 
 .users-table :deep(.el-table--border .el-table__cell) {
   border-right: 1px solid #034c6a;
+}
+</style>
+
+<style>
+.users-dialog {
+  background-color: #081832 !important;
+  border: 1px solid #034c6a;
+  border-radius: 12px;
 }
 </style>
