@@ -37,7 +37,9 @@ const rules: FormRules = {
 async function fetchUsers() {
   loading.value = true
   try {
-    users.value = await getUsers()
+    const res = await getUsers()
+    if (res.code !== 1) throw new Error(res.msg || '获取用户列表失败')
+    users.value = res.data
   } catch (error: any) {
     ElMessage.error(error.message || '获取用户列表失败')
   } finally {
@@ -88,14 +90,16 @@ async function handleSubmit() {
       if (form.value.password) {
         updateData.password = form.value.password
       }
-      await updateUser(form.value.id, updateData)
+      const updateRes = await updateUser(form.value.id, updateData)
+      if (updateRes.code !== 1) throw new Error(updateRes.msg || '更新用户失败')
       ElMessage.success('更新成功')
     } else {
-      await createUser({
+      const createRes = await createUser({
         username: form.value.username,
         password: form.value.password,
         isAdmin: form.value.isAdmin,
       })
+      if (createRes.code !== 1) throw new Error(createRes.msg || '添加用户失败')
       ElMessage.success('添加成功')
     }
     dialogVisible.value = false
@@ -122,7 +126,8 @@ async function handleDelete(user: User) {
 
     loading.value = true
     try {
-      await deleteUser(user.id!)
+      const deleteRes = await deleteUser(user.id!)
+      if (deleteRes.code !== 1) throw new Error(deleteRes.msg || '删除用户失败')
       ElMessage.success('删除成功')
       await fetchUsers()
     } catch (error: any) {

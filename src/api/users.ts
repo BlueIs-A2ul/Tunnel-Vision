@@ -1,3 +1,12 @@
+/* ============================================
+ * 用户管理相关 API 接口
+ * ============================================
+ * getUsers    - 获取用户列表
+ * createUser  - 添加用户
+ * updateUser  - 更新用户信息
+ * deleteUser  - 删除用户
+ * ============================================ */
+
 import request from '@/utils/request'
 import type { User } from '@/types/user'
 
@@ -13,28 +22,67 @@ export interface UpdateUserParams {
   isAdmin?: number
 }
 
-export async function getUsers(): Promise<User[]> {
-  const res = await request.get<any, { code: number; msg: string; data: User[] }>('/user/list')
-  if (res.code !== 1) throw new Error(res.msg || '获取用户列表失败')
-  return res.data
+export interface GetUsersResponse {
+  code: number
+  msg: string
+  data: User[]
 }
 
-export async function createUser(params: CreateUserParams): Promise<void> {
-  const res = await request.post<any, { code: number; msg: string }>('/user/add', params)
-  if (res.code !== 1) throw new Error(res.msg || '添加用户失败')
+export interface CreateUserResponse {
+  code: number
+  msg: string
 }
 
-export async function updateUser(id: number, params: UpdateUserParams): Promise<void> {
-  const res = await request.put<any, { code: number; msg: string }>('/user/updateRole', {
+export interface UpdateUserResponse {
+  code: number
+  msg: string
+}
+
+export interface DeleteUserResponse {
+  code: number
+  msg: string
+}
+
+/**
+ * 获取用户列表
+ * @returns
+ */
+export function getUsers(): Promise<GetUsersResponse> {
+  return request.get(`/user/list`)
+}
+
+/**
+ * 添加用户
+ * @param {object} params 用户信息
+ * @param {string} params.username 用户名
+ * @param {string} params.password 密码
+ * @param {number} params.isAdmin 是否管理员(1-是,0-否)
+ * @returns
+ */
+export function createUser(params: CreateUserParams): Promise<CreateUserResponse> {
+  return request.post(`/user/add`, params)
+}
+
+/**
+ * 更新用户信息
+ * @param {number} id 用户ID
+ * @param {object} params 更新参数
+ * @returns
+ */
+export function updateUser(id: number, params: UpdateUserParams): Promise<UpdateUserResponse> {
+  return request.put(`/user/updateRole`, {
     id,
     username: params.username,
     password: params.password || '',
     isAdmin: params.isAdmin ?? 0,
   })
-  if (res.code !== 1) throw new Error(res.msg || '更新用户失败')
 }
 
-export async function deleteUser(id: number): Promise<void> {
-  const res = await request.delete<any, { code: number; msg: string }>(`/user/delete/${id}`)
-  if (res.code !== 1) throw new Error(res.msg || '删除用户失败')
+/**
+ * 删除用户
+ * @param {number} id 用户ID
+ * @returns
+ */
+export function deleteUser(id: number): Promise<DeleteUserResponse> {
+  return request.delete(`/user/delete/${id}`)
 }

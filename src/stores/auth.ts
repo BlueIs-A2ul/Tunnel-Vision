@@ -36,8 +36,8 @@ export const useAuthStore = defineStore(
 
         // 从用户列表获取当前登录用户的完整信息（含 isAdmin）
         try {
-          const users = await getUsers()
-          const currentUser = users.find(u => u.username === response.data.username)
+          const usersRes = await getUsers()
+          const currentUser = usersRes.data?.find(u => u.username === response.data.username)
           if (currentUser) {
             user.value = currentUser
           }

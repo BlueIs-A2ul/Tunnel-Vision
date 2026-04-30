@@ -1,3 +1,9 @@
+/* ============================================
+ * 图像搜索相关 API 接口
+ * ============================================
+ * searchByImage - 根据图像查询车辆
+ * ============================================ */
+
 import request from '@/utils/request'
 
 export interface SearchResult {
@@ -8,12 +14,21 @@ export interface SearchResult {
   imageUrlList: string[]
 }
 
-export async function searchByImage(file: File): Promise<SearchResult[]> {
+export interface SearchByImageResponse {
+  code: number
+  msg: string
+  data: SearchResult[]
+}
+
+/**
+ * 根据图像查询车辆
+ * @param {File} file 上传的图片文件
+ * @returns
+ */
+export function searchByImage(file: File): Promise<SearchByImageResponse> {
   const formData = new FormData()
   formData.append('file', file)
-  const res = await request.post<any, { code: number; msg: string; data: SearchResult[] }>('/api/search', formData, {
+  return request.post(`/api/ai/search`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   })
-  if (res.code !== 1) throw new Error(res.msg || '查询失败')
-  return res.data
 }
