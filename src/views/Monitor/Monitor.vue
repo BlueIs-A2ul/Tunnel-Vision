@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { VideoCamera } from '@element-plus/icons-vue'
+import { getRealtimeStats } from '@/api/realtime'
 
 const rtspUrl = ref('')
 const rtspConnected = ref(false)
@@ -130,19 +131,40 @@ const initTypeChart = () => {
   typeChart.setOption(option)
 }
 
-const refreshData = () => {
-  stats.value.totalVehicles += Math.floor(Math.random() * 5)
+async function fetchRealtimeData() {
+  try {
+    const res = await getRealtimeStats()
+    console.log('实时车辆统计数据:', res)
+    if (res.code === 1 && res.data) {
+      const d = res.data
+      stats.value.totalVehicles = d.totalVehicleCount
+      stats.value.busCount = d.busCount
+      stats.value.truckCount = d.truckCount
+      stats.value.tankerCount = d.tankerCount
+      trackingList.value = d.currentVehicles.map(v => ({
+        id: v.vehicleId,
+        category: v.category,
+        cam: parseInt(v.cameraId, 10) || 0,
+        time: new Date(v.timestamp).toLocaleTimeString('zh-CN', { hour12: false }),
+      }))
+      updateTypeChart()
+    }
+  } catch (err) {
+    console.error('获取实时数据失败:', err)
+  }
+}
 
-  const newRecord = {
-    id: `ID_${String(Math.floor(Math.random() * 100)).padStart(3, '0')}`,
-    category: ['bus', 'truck', 'car'][Math.floor(Math.random() * 3)],
-    cam: Math.floor(Math.random() * 5) + 1,
-    time: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
-  }
-  trackingList.value.unshift(newRecord)
-  if (trackingList.value.length > 50) {
-    trackingList.value.splice(50)
-  }
+function updateTypeChart() {
+  if (!typeChart) return
+  typeChart.setOption({
+    series: [{
+      data: [
+        { value: stats.value.busCount, name: '巴士', itemStyle: { color: '#4b8df8' } },
+        { value: stats.value.truckCount, name: '卡车', itemStyle: { color: '#25f3e6' } },
+        { value: stats.value.tankerCount, name: '油罐车', itemStyle: { color: '#ff4e4e' } },
+      ],
+    }],
+  })
 }
 
 const getCategoryLabel = (category: string) => {
@@ -167,13 +189,15 @@ const getCategoryClass = (category: string) => {
 
 let refreshTimer: number | null = null
 
-onMounted(() => {
-  nextTick(() => {
-    initTrendChart()
-    initTypeChart()
-  })
+onMounted(async () => {
+  await fetchRealtimeData()
 
-  refreshTimer = window.setInterval(refreshData, 5000)
+  await nextTick()
+  initTrendChart()
+  initTypeChart()
+  updateTypeChart()
+
+  refreshTimer = window.setInterval(fetchRealtimeData, 5000)
 
   window.addEventListener('resize', () => {
     trendChart?.resize()
