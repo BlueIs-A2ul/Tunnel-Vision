@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import * as echarts from 'echarts'
+import { Icon } from '@iconify/vue'
 
 const chartRef = ref<HTMLElement | null>(null)
 let chartInstance: echarts.ECharts | null = null
@@ -57,13 +58,18 @@ onUnmounted(() => {
   chartInstance?.dispose()
 })
 
-defineExpose({ resize: () => chartInstance?.resize() })
+defineExpose({
+  resize: () => chartInstance?.resize(),
+  setData(data: { value: number; name: string }[]) {
+    chartInstance?.setOption({ series: [{ data }] })
+  },
+})
 </script>
 
 <template>
   <div class="chart-wrapper">
     <div class="chart-title">
-      <i class="title_icon"></i>车辆类型统计
+      车辆类型统计
     </div>
     <div ref="chartRef" class="chart-content"></div>
   </div>
@@ -84,29 +90,22 @@ defineExpose({ resize: () => chartInstance?.resize() })
 }
 
 .chart-title {
+  display: inline-flex;
+  align-items: center;
   background-color: #034c6a;
   border-radius: 18px;
-  position: absolute;
-  height: 35px;
-  width: 60%;
-  top: -15px;
+  padding: 8px 30px;
   color: #ffffff;
   font-weight: bold;
-  font-size: 16px;
-  left: 20%;
-  line-height: 35px;
-  text-align: center;
-}
-
-.title_icon {
-  width: 18px;
-  height: 18px;
-  display: inline-block;
-  position: relative;
-  top: 2px;
-  margin-right: 5px;
-  background: #ffffff no-repeat center;
-  background-size: contain;
+  font-size: 18px;
+  gap: 8px;
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  box-shadow: 0 4px 6px rgba(3, 76, 106, 0.3);
+  width: auto;
+  white-space: nowrap;
 }
 
 .chart-content {

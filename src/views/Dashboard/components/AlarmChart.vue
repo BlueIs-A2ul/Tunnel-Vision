@@ -67,8 +67,7 @@ defineExpose({ resize: () => chartInstance?.resize() })
 
 <template>
   <div class="chart-wrapper">
-    <div class="chart-title">
-      <i class="title_icon"></i>车辆报警统计
+    <div class="chart-title">车辆报警统计
     </div>
     <div ref="chartRef" class="chart-content"></div>
   </div>

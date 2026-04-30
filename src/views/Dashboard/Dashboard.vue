@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import StatsOverview from '@/views/Dashboard/components/StatsOverview.vue'
 import TypeChart from '@/views/Dashboard/components/TypeChart.vue'
 import StatusChart from '@/views/Dashboard/components/StatusChart.vue'
@@ -8,6 +8,9 @@ import AlarmChart from '@/views/Dashboard/components/AlarmChart.vue'
 import RankingTable from '@/views/Dashboard/components/RankingTable.vue'
 import MapPlaceholder from '@/views/Dashboard/components/MapPlaceholder.vue'
 import { Icon } from '@iconify/vue'
+import { getSummary } from '@/api/realtime'
+
+const typeChartRef = ref<InstanceType<typeof TypeChart> | null>(null)
 
 const stats = ref({
   totalVehicles: 12356,
@@ -36,6 +39,24 @@ const vehicleRecords = ref<VehicleRecord[]>([
   { ID: 'ID_004', type: '小车', timeStamp: '2024-01-15 10:15', cameraID: 'C02', count: 2, photos: [], isDangerous: false },
   { ID: 'ID_005', type: '卡车', timeStamp: '2024-01-15 10:10', cameraID: 'C03', count: 4, photos: [], isDangerous: false },
 ])
+
+onMounted(async () => {
+  try {
+    const res = await getSummary()
+    console.log('车辆统计汇总:', res)
+    if (res.code === 1 && res.data) {
+      const d = res.data
+      stats.value.totalVehicles = d.totalVehicleCount
+      typeChartRef.value?.setData([
+        { value: d.busCount, name: '客车' },
+        { value: d.truckCount, name: '货车' },
+        { value: d.tankerCount, name: '特种车' },
+      ])
+    }
+  } catch (err) {
+    console.error('获取车辆统计汇总失败:', err)
+  }
+})
 </script>
 
 <template>
@@ -54,7 +75,7 @@ const vehicleRecords = ref<VehicleRecord[]>([
       <div class="w-full mb-[25px] h-[610px] flex justify-between">
         <div class="w-[23%] flex flex-col gap-5">
           <!-- 车辆类型统计 -->
-          <TypeChart />
+          <TypeChart ref="typeChartRef" />
           <!-- 摄像头下车辆数 -->
           <StatusChart />
         </div>
