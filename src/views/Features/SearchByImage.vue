@@ -38,16 +38,29 @@ function handleSelect() {
 }
 
 async function handleSearch() {
-  if (!selectedFile.value) return
+  if (!selectedFile.value) {
+    ElMessage.warning('请先上传图片')
+    return
+  }
   loading.value = true
 
   try {
-    searchResults.value = await searchByImage(selectedFile.value)
+    const res = await searchByImage(selectedFile.value)
+    if (res.code !== 1) throw new Error(res.msg || '查询失败')
+    searchResults.value = res.data
   } catch (error: any) {
     ElMessage.error(error.message || '查询失败')
   } finally {
     loading.value = false
   }
+}
+
+const selectedItem = ref<SearchResult | null>(null)
+const dialogVisible = ref(false)
+
+function showDetail(item: SearchResult) {
+  selectedItem.value = item
+  dialogVisible.value = true
 }
 
 function handleReset() {
@@ -90,6 +103,18 @@ function handleReset() {
             <p class="text-sm text-[#e8f7fe] my-2">拖拽图片到此处，或点击上传</p>
             <p class="text-xs text-[#61d2f7]">支持 JPG、PNG、WebP 格式</p>
           </template>
+          <el-dialog v-model="dialogVisible" :title="'车辆详情 - ' + (selectedItem?.vehicleId || '')" width="50%"
+            :close-on-click-modal="false" destroy-on-close>
+            <div v-if="selectedItem" class="grid grid-cols-3 gap-3">
+              <div v-for="(img, i) in selectedItem.imageUrlList" :key="i"
+                class="aspect-square bg-[#072951] rounded-lg border border-[#034c6a] overflow-hidden">
+                <el-image :src="img" class="w-full h-full" fit="contain" :preview-src-list="selectedItem.imageUrlList"
+                  :initial-index="i" preview-teleported />
+              </div>
+              <div v-if="!selectedItem.imageUrlList?.length" class="col-span-3 text-center text-[#61d2f7] py-10">暂无图片
+              </div>
+            </div>
+          </el-dialog>
         </div>
 
         <!-- 右侧：按钮 -->
@@ -122,6 +147,11 @@ function handleReset() {
             <span class="text-xs text-white mt-1 text-left">{{ item.vehicleId }}</span>
             <span class="text-xs text-[#61d2f7] mt-1 text-left">相似度: {{ (item.similarity * 100).toFixed(0) }}%</span>
             <span v-if="item.vehicleType" class="text-xs text-white mt-0.5 text-left">{{ item.vehicleType }}</span>
+            <button
+              class="text-xs text-[#4b8df8] mt-0.5 bg-transparent border-none cursor-pointer p-0 hover:underline text-left"
+              @click.stop="showDetail(item)">
+              查看更多
+            </button>
           </div>
         </div>
       </template>
@@ -171,5 +201,19 @@ function handleReset() {
 
 .upload-area.has-image:hover .upload-overlay {
   opacity: 1;
+}
+
+:deep(.el-dialog) {
+  background: #072951;
+  border: 1px solid #034c6a;
+  border-radius: 12px;
+}
+
+:deep(.el-dialog__title) {
+  color: #fff;
+}
+
+:deep(.el-dialog__body) {
+  color: #e8f7fe;
 }
 </style>
