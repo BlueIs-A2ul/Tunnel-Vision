@@ -3,7 +3,6 @@ import request from '@/utils/request'
 export interface SearchResult {
   vehicleId: string
   similarity: number
-  plateNumber: string
   vehicleType: string
   tracks: { location: string; time: string }[]
   imageUrlList: string[]

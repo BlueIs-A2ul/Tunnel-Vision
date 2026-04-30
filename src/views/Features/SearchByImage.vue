@@ -96,18 +96,16 @@ function handleReset() {
         <div class="flex-1 flex items-center justify-evenly">
           <button
             class="inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-md text-sm font-medium cursor-pointer border-none text-white transition-opacity duration-200 min-w-[120px]"
-            style="background: linear-gradient(to bottom, #4b8df8, #25f3e6)"
-            :disabled="!imageUrl || loading"
-            @click="handleSearch"
-          >
-            <el-icon><Search /></el-icon>
+            style="background: linear-gradient(to bottom, #4b8df8, #25f3e6)" :disabled="!imageUrl || loading"
+            @click="handleSearch">
+            <el-icon>
+              <Search />
+            </el-icon>
             {{ loading ? '查询中...' : '开始查询' }}
           </button>
           <button
             class="inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-md text-sm font-medium cursor-pointer border border-[#034c6a] bg-transparent text-[#e8f7fe] transition-all duration-200 hover:bg-[rgba(3,76,106,0.3)] disabled:opacity-40 disabled:cursor-not-allowed min-w-[120px]"
-            :disabled="!imageUrl"
-            @click="handleReset"
-          >
+            :disabled="!imageUrl" @click="handleReset">
             重新上传
           </button>
         </div>
@@ -121,8 +119,9 @@ function handleReset() {
             <div class="aspect-[3/4] bg-[#072951] rounded-lg border border-[#034c6a] overflow-hidden">
               <img :src="item.imageUrlList?.[0] || ''" class="w-full h-full object-contain" alt="搜索结果" />
             </div>
+            <span class="text-xs text-white mt-1 text-left">{{ item.vehicleId }}</span>
             <span class="text-xs text-[#61d2f7] mt-1 text-left">相似度: {{ (item.similarity * 100).toFixed(0) }}%</span>
-            <span v-if="item.plateNumber" class="text-xs text-white mt-0.5 text-left">{{ item.plateNumber }}</span>
+            <span v-if="item.vehicleType" class="text-xs text-white mt-0.5 text-left">{{ item.vehicleType }}</span>
           </div>
         </div>
       </template>
