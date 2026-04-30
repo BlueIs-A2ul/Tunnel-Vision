@@ -7,6 +7,7 @@ import TrendChart from '@/views/Dashboard/components/TrendChart.vue'
 import AlarmChart from '@/views/Dashboard/components/AlarmChart.vue'
 import RankingTable from '@/views/Dashboard/components/RankingTable.vue'
 import MapPlaceholder from '@/views/Dashboard/components/MapPlaceholder.vue'
+import { Icon } from '@iconify/vue'
 
 const stats = ref({
   totalVehicles: 12356,
@@ -41,8 +42,9 @@ const vehicleRecords = ref<VehicleRecord[]>([
   <div class="min-h-screen bg-[#081832]">
     <div class="w-[98%] mx-auto pt-5 pb-5 flex flex-col">
       <div class="mb-5">
-        <div class="inline-block bg-[#034c6a] rounded-[18px] px-[30px] py-2 text-white font-bold text-lg">
-          <i class="inline-block w-[18px] h-[18px] relative top-0.5 mr-2 bg-white bg-center bg-no-repeat bg-contain"></i>
+        <div
+          class="inline-flex items-center bg-[#034c6a] rounded-[18px] px-[30px] py-2 text-white font-bold text-lg gap-2">
+          <Icon icon="uis:chart" :size="20" color="#4b8df8"></Icon>
           数据总览
         </div>
       </div>

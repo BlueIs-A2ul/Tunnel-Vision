@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { Icon } from '@iconify/vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -20,9 +21,9 @@ function navigateTo(path: string) {
   <div class="min-h-[calc(100vh-80px)] bg-[#081832] flex flex-col">
     <div class="w-[98%] mx-auto pt-4 flex-1 flex flex-col">
       <div class="mb-3">
-        <div class="inline-block bg-[#034c6a] rounded-[18px] px-[30px] py-2 text-white font-bold text-lg">
-          <i
-            class="inline-block w-[18px] h-[18px] relative top-0.5 mr-2 bg-white bg-center bg-no-repeat bg-contain"></i>
+        <div
+          class="inline-flex items-center bg-[#034c6a] rounded-[18px] px-[30px] py-2 text-white font-bold text-lg gap-2">
+          <Icon icon="mdi:image" :size="20" color="#4b8df8"></Icon>
           图库管理
         </div>
       </div>

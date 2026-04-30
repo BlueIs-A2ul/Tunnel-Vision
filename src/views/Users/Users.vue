@@ -5,6 +5,7 @@ import type { FormInstance, FormRules } from 'element-plus'
 import { getUsers, createUser, updateUser, deleteUser } from '@/api/users'
 import { useAuthStore } from '@/stores/auth'
 import type { User } from '@/types/user'
+import { Icon } from '@iconify/vue'
 
 const authStore = useAuthStore()
 
@@ -144,8 +145,9 @@ onMounted(() => {
     <div class="users-content">
       <!-- 标题 -->
       <div class="page-header">
-        <div class="header-title">
-          <i class="title-icon"></i>
+        <div
+          class="inline-flex items-center bg-[#034c6a] rounded-[18px] px-[30px] py-2 text-white font-bold text-lg gap-2">
+          <Icon icon="boxicons:user-filled" :size="20" color="#4b8df8"></Icon>
           用户管理
         </div>
       </div>
@@ -162,8 +164,8 @@ onMounted(() => {
 
       <!-- 数据表格 -->
       <div class="table-wrapper">
-        <el-table v-loading="loading" element-loading-background="rgba(8, 24, 50, 0.85)" :data="users" class="users-table"
-          :header-cell-style="{ background: '#034c6a', color: '#ffffff', border: 'none' }"
+        <el-table v-loading="loading" element-loading-background="rgba(8, 24, 50, 0.85)" :data="users"
+          class="users-table" :header-cell-style="{ background: '#034c6a', color: '#ffffff', border: 'none' }"
           :cell-style="{ background: '#081832', color: '#ffffff', borderColor: '#034c6a' }">
           <el-table-column prop="id" label="ID" width="100" align="center" />
           <el-table-column prop="username" label="用户名" min-width="150" align="center" />
@@ -189,8 +191,7 @@ onMounted(() => {
     </div>
 
     <!-- 添加/编辑对话框 -->
-    <el-dialog v-model="dialogVisible" title="" width="450px" class="users-dialog"
-      :show-close="false"
+    <el-dialog v-model="dialogVisible" title="" width="450px" class="users-dialog" :show-close="false"
       :close-on-click-modal="false" destroy-on-close>
       <div class="dialog-custom-header">
         <span>{{ dialogTitle }}</span>

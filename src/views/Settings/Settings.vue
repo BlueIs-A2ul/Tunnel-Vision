@@ -2,6 +2,7 @@
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { SwitchButton } from '@element-plus/icons-vue'
+import { Icon } from '@iconify/vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -25,9 +26,9 @@ async function handleLogout() {
   <div class="min-h-[calc(100vh-80px)] bg-[#081832]">
     <div class="w-[98%] mx-auto py-6">
       <div class="mb-5">
-        <div class="inline-block bg-[#034c6a] rounded-[18px] px-[30px] py-2 text-white font-bold text-lg">
-          <i
-            class="inline-block w-[18px] h-[18px] relative top-0.5 mr-2 bg-white bg-center bg-no-repeat bg-contain"></i>
+        <div
+          class="inline-flex items-center bg-[#034c6a] rounded-[18px] px-[30px] py-2 text-white font-bold text-lg gap-2">
+          <Icon icon="lsicon:setting-filled" :size="20" color="#4b8df8"></Icon>
           系统设置
         </div>
       </div>

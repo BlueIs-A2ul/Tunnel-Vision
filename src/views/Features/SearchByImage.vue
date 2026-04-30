@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { Plus, Search } from '@element-plus/icons-vue'
 import { searchByImage, type SearchResult } from '@/api/search'
+import { Icon } from '@iconify/vue'
 
 const imageUrl = ref<string | null>(null)
 const selectedFile = ref<File | null>(null)
@@ -60,9 +61,8 @@ function handleReset() {
   <div>
     <div class="max-w-[1000px] mx-auto">
       <div class="mb-5">
-        <div class="inline-block bg-[#034c6a] rounded-[18px] px-[30px] py-2 text-white font-bold text-lg mb-2">
-          <i
-            class="inline-block w-[18px] h-[18px] relative top-0.5 mr-2 bg-white bg-center bg-no-repeat bg-contain rounded-full"></i>
+        <div class="inline-flex items-center bg-[#034c6a] rounded-[18px] px-7.5 py-2 text-white font-bold text-lg mb-2">
+          <Icon icon="mdi:car-search" :size="20" color="#fff" class="mr-2"></Icon>
           根据图像查询车辆信息
         </div>
         <p class="text-sm text-[#61d2f7] ml-1">上传车辆图片，通过 AI 识别快速查询车辆详细信息</p>
