@@ -121,141 +121,114 @@ function goToLogin() {
 </script>
 
 <template>
-  <div
-    class="min-h-screen flex flex-col items-center justify-center"
-    :style="{ background: `url(${loginBg}) center/cover no-repeat` }"
-  >
+  <div class="min-h-screen flex flex-col items-center justify-center"
+    :style="{ background: `url(${loginBg}) center/cover no-repeat` }">
     <!-- 登录注册卡片 -->
-    <div
-      class="w-[480px] p-6 rounded-2xl flex flex-col items-center"
-      :style="{ background: `url(${cardBg}) center/cover no-repeat`, border: '1px solid rgba(20, 121, 173, 0.6)' }"
-    >
+    <div class="w-120 min-h-105 rounded-2xl flex flex-col items-center"
+      :style="{ background: `url(${cardBg}) center/cover no-repeat`, border: '1px solid rgba(20, 121, 173, 0.6)' }">
       <!-- 主标题 -->
       <div class="text-2xl font-medium text-white text-center mb-1">智慧隧道综合平台</div>
 
       <!-- Tab 切换 -->
       <div class="flex rounded-lg mb-6 w-full" style="background: rgba(255,255,255,0.05)">
-        <button
-          :class="[
-            'flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200',
-            activeTab === 'login'
-              ? 'bg-[#1479ad] text-white'
-              : 'text-white/70 hover:text-white'
-          ]"
-          @click="switchTab('login')"
-        >
+        <button :class="[
+          'flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200',
+          activeTab === 'login'
+            ? 'bg-[#1479ad] text-white'
+            : 'text-white/70 hover:text-white'
+        ]" @click="switchTab('login')">
           登录
         </button>
-        <button
-          :class="[
-            'flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200',
-            activeTab === 'register'
-              ? 'bg-[#1479ad] text-white'
-              : 'text-white/70 hover:text-white'
-          ]"
-          @click="switchTab('register')"
-        >
+        <button :class="[
+          'flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200',
+          activeTab === 'register'
+            ? 'bg-[#1479ad] text-white'
+            : 'text-white/70 hover:text-white'
+        ]" @click="switchTab('register')">
           注册
         </button>
       </div>
 
       <!-- 卡片内部内容区 -->
-        <!-- 登录表单 -->
-        <el-form v-if="activeTab === 'login'" ref="formRef" :model="loginForm" :rules="loginRules" label-position="top"
-          @submit.prevent="handleLogin">
-          <div class="text-base text-white text-center mb-5 font-medium">用户登录</div>
+      <!-- 登录表单 -->
+      <el-form v-if="activeTab === 'login'" ref="formRef" :model="loginForm" :rules="loginRules" label-position="top"
+        class="flex flex-col flex-1" @submit.prevent="handleLogin">
+        <div class="text-base text-white text-center mb-5 font-medium">用户登录</div>
 
-          <el-form-item prop="username" class="mb-4">
-            <div class="auth-input-wrap">
-              <span class="auth-input-icon">
-                <el-icon><User /></el-icon>
-              </span>
-              <input
-                v-model="loginForm.username"
-                type="text"
-                placeholder="请输入用户名"
-                class="auth-input-native"
-              />
-            </div>
-          </el-form-item>
+        <el-form-item prop="username" class="mb-4">
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon">
+              <el-icon>
+                <User />
+              </el-icon>
+            </span>
+            <input v-model="loginForm.username" type="text" placeholder="请输入用户名" class="auth-input-native" />
+          </div>
+        </el-form-item>
 
-          <el-form-item prop="password" class="mb-5">
-            <div class="auth-input-wrap">
-              <span class="auth-input-icon">
-                <el-icon><Lock /></el-icon>
-              </span>
-              <input
-                v-model="loginForm.password"
-                type="password"
-                placeholder="请输入密码"
-                class="auth-input-native"
-              />
-            </div>
-          </el-form-item>
+        <el-form-item prop="password" class="mb-5">
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon">
+              <el-icon>
+                <Lock />
+              </el-icon>
+            </span>
+            <input v-model="loginForm.password" type="password" placeholder="请输入密码" class="auth-input-native" />
+          </div>
+        </el-form-item>
 
-          <button
-            type="button"
+        <button type="button"
+          class="mt-auto w-full h-11 rounded-md text-base font-medium cursor-pointer border-none text-white hover:opacity-90 transition-opacity bg-[#0755AA]"
+          :disabled="loading" @click="handleLogin">
+          {{ loading ? '登录中...' : '登 录' }}
+        </button>
+      </el-form>
+
+      <!-- 注册表单 -->
+      <el-form v-else ref="formRef" :model="registerForm" :rules="registerRules" label-position="top"
+        class="flex flex-col flex-1" @submit.prevent="handleRegister">
+        <div class="text-base text-white text-center mb-5 font-medium">用户注册</div>
+
+        <el-form-item prop="username" class="mb-4">
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon">
+              <el-icon>
+                <User />
+              </el-icon>
+            </span>
+            <input v-model="registerForm.username" type="text" placeholder="请输入用户名(3-20个字符)"
+              class="auth-input-native" />
+          </div>
+        </el-form-item>
+
+        <el-form-item prop="password" class="mb-4">
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon">
+              <el-icon>
+                <Lock />
+              </el-icon>
+            </span>
+            <input v-model="registerForm.password" type="password" placeholder="请输入密码(至少6个字符)"
+              class="auth-input-native" />
+          </div>
+        </el-form-item>
+
+        <el-form-item prop="confirmPassword" class="mb-5">
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon">
+              <el-icon>
+                <Lock />
+              </el-icon>
+            </span>
+            <input v-model="registerForm.confirmPassword" type="password" placeholder="请再次输入密码"
+              class="auth-input-native" />
+          </div>
+        </el-form-item>
+
+        <div class="mt-auto w-full">
+          <button type="button"
             class="w-full h-11 rounded-md text-base font-medium cursor-pointer border-none text-white hover:opacity-90 transition-opacity bg-[#0755AA]"
-            :disabled="loading"
-            @click="handleLogin"
-          >
-            {{ loading ? '登录中...' : '登 录' }}
-          </button>
-        </el-form>
-
-        <!-- 注册表单 -->
-        <el-form v-else ref="formRef" :model="registerForm" :rules="registerRules" label-position="top"
-          @submit.prevent="handleRegister">
-          <div class="text-base text-white text-center mb-5 font-medium">用户注册</div>
-
-          <el-form-item prop="username" class="mb-4">
-            <div class="auth-input-wrap">
-              <span class="auth-input-icon">
-                <el-icon><User /></el-icon>
-              </span>
-              <input
-                v-model="registerForm.username"
-                type="text"
-                placeholder="请输入用户名(3-20个字符)"
-                class="auth-input-native"
-              />
-            </div>
-          </el-form-item>
-
-          <el-form-item prop="password" class="mb-4">
-            <div class="auth-input-wrap">
-              <span class="auth-input-icon">
-                <el-icon><Lock /></el-icon>
-              </span>
-              <input
-                v-model="registerForm.password"
-                type="password"
-                placeholder="请输入密码(至少6个字符)"
-                class="auth-input-native"
-              />
-            </div>
-          </el-form-item>
-
-          <el-form-item prop="confirmPassword" class="mb-5">
-            <div class="auth-input-wrap">
-              <span class="auth-input-icon">
-                <el-icon><Lock /></el-icon>
-              </span>
-              <input
-                v-model="registerForm.confirmPassword"
-                type="password"
-                placeholder="请再次输入密码"
-                class="auth-input-native"
-              />
-            </div>
-          </el-form-item>
-
-          <button
-            type="button"
-            class="w-full h-11 rounded-md text-base font-medium cursor-pointer border-none text-white hover:opacity-90 transition-opacity bg-[#0755AA]"
-            :disabled="loading"
-            @click="handleRegister"
-          >
+            :disabled="loading" @click="handleRegister">
             {{ loading ? '注册中...' : '立即注册' }}
           </button>
 
@@ -265,7 +238,8 @@ function goToLogin() {
               立即登录
             </button>
           </div>
-        </el-form>
+        </div>
+      </el-form>
     </div>
 
     <!-- Footer -->
