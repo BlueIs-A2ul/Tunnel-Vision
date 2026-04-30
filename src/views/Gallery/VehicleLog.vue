@@ -71,13 +71,6 @@ function saveSettings() {
 <template>
   <div class="min-h-[calc(100vh-80px)] bg-[#081832]">
     <div class="w-[98%] mx-auto py-5">
-      <div class="mb-4">
-        <div class="inline-block bg-[#034c6a] rounded-[18px] px-[30px] py-2 text-white font-bold text-lg">
-          <i
-            class="inline-block w-[18px] h-[18px] relative top-0.5 mr-2 bg-white bg-center bg-no-repeat bg-contain"></i>
-          车辆归档日志
-        </div>
-      </div>
 
       <div class="flex justify-end items-center mb-5">
         <div class="flex items-center gap-3">
