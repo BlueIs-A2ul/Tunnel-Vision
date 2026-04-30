@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { SwitchButton } from '@element-plus/icons-vue'
 import { Icon } from '@iconify/vue'
+import { getSystemSettings, updateSystemSettings } from '@/api/settings'
+import type { SystemSettings } from '@/types/settings'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -20,6 +23,41 @@ async function handleLogout() {
   } catch {
   }
 }
+
+const settingsLoading = ref(false)
+const systemSettings = ref<SystemSettings>({
+  defaultCameraCount: 5,
+  videoSyncFps: 25,
+  frameExtractInterval: 4,
+})
+
+async function fetchSystemSettings() {
+  try {
+    const res = await getSystemSettings()
+    if (res.code === 1 && res.data) {
+      systemSettings.value = res.data
+    }
+  } catch {
+    // 使用默认值
+  }
+}
+
+async function handleSaveSettings() {
+  settingsLoading.value = true
+  try {
+    const res = await updateSystemSettings(systemSettings.value)
+    if (res.code !== 1) throw new Error(res.msg || '保存失败')
+    ElMessage.success('系统参数已保存')
+  } catch (error: any) {
+    ElMessage.error(error.message || '保存失败')
+  } finally {
+    settingsLoading.value = false
+  }
+}
+
+onMounted(() => {
+  fetchSystemSettings()
+})
 </script>
 
 <template>
@@ -53,6 +91,37 @@ async function handleLogout() {
                   {{ authStore.user?.isAdmin === 1 ? '管理员' : '普通用户' }}
                 </span>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-section">
+          <div class="section-title">系统参数设置</div>
+          <div class="p-0">
+            <div class="flex flex-col gap-1">
+              <div class="flex items-center justify-between py-3 border-b border-[#034c6a]">
+                <span class="text-[#61d2f7] text-sm">默认摄像头数量</span>
+                <el-input-number v-model="systemSettings.defaultCameraCount" :min="1" :max="100" :step="1"
+                  controls-position="right" class="settings-input-number" />
+              </div>
+              <div class="flex items-center justify-between py-3 border-b border-[#034c6a]">
+                <span class="text-[#61d2f7] text-sm">视频同步帧率</span>
+                <el-input-number v-model="systemSettings.videoSyncFps" :min="1" :max="120" :step="1"
+                  controls-position="right" class="settings-input-number" />
+              </div>
+              <div class="flex items-center justify-between py-3 border-b border-[#034c6a] last:border-b-0">
+                <span class="text-[#61d2f7] text-sm">抽帧检测间隔（秒）</span>
+                <el-input-number v-model="systemSettings.frameExtractInterval" :min="1" :max="3600" :step="1"
+                  controls-position="right" class="settings-input-number" />
+              </div>
+            </div>
+            <div class="flex justify-end mt-4">
+              <button
+                class="inline-flex items-center gap-1.5 px-5 py-2 rounded-md text-sm font-medium cursor-pointer border-none text-white transition-opacity duration-200 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                style="background: linear-gradient(to bottom, #4b8df8, #25f3e6)" :disabled="settingsLoading"
+                @click="handleSaveSettings">
+                {{ settingsLoading ? '保存中...' : '保存设置' }}
+              </button>
             </div>
           </div>
         </div>
@@ -123,5 +192,26 @@ async function handleLogout() {
 
 .btn-danger:hover {
   background: rgba(245, 108, 108, 0.2);
+}
+
+:deep(.settings-input-number .el-input-number__decrease),
+:deep(.settings-input-number .el-input-number__increase) {
+  background: #034c6a;
+  color: #fff;
+  border-color: #034c6a;
+}
+
+:deep(.settings-input-number .el-input__wrapper) {
+  background: #034c6a;
+  border: 1px solid #034c6a;
+  box-shadow: none;
+}
+
+:deep(.settings-input-number .el-input__inner) {
+  color: #fff;
+}
+
+:deep(.settings-input-number .el-input__wrapper.is-focus) {
+  border-color: #4b8df8;
 }
 </style>
