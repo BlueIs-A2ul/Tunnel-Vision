@@ -5,6 +5,7 @@ import { Icon } from '@iconify/vue'
 
 const chartRef = ref<HTMLElement | null>(null)
 let chartInstance: echarts.ECharts | null = null
+const handleResize = () => chartInstance?.resize()
 
 const initChart = () => {
   if (!chartRef.value) return
@@ -58,11 +59,13 @@ const initChart = () => {
 
 onMounted(() => {
   initChart()
-  window.addEventListener('resize', () => chartInstance?.resize())
+  window.addEventListener('resize', handleResize)
 })
 
 onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
   chartInstance?.dispose()
+  chartInstance = null
 })
 
 defineExpose({ resize: () => chartInstance?.resize() })

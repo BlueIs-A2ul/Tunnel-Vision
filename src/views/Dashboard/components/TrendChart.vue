@@ -4,6 +4,7 @@ import * as echarts from 'echarts'
 
 const chartRef = ref<HTMLElement | null>(null)
 let chartInstance: echarts.ECharts | null = null
+const handleResize = () => chartInstance?.resize()
 
 // 生成模拟日流量数据
 const generateDailyFlowData = () => {
@@ -73,8 +74,13 @@ const initChart = () => {
 
 onMounted(() => {
   initChart()
-  generateDailyFlowData()
-  window.addEventListener('resize', () => chartInstance?.resize())
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+  chartInstance?.dispose()
+  chartInstance = null
 })
 
 onUnmounted(() => {

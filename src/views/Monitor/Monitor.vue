@@ -3,6 +3,8 @@ import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { VideoCamera } from '@element-plus/icons-vue'
 import { getRealtimeStats } from '@/api/realtime'
+import { startDemo, stopDemo } from '@/api/demo'
+import { connectAlertSocket, disconnectAlertSocket } from '@/utils/socket'
 
 const rtspUrl = ref('')
 const rtspConnected = ref(false)
@@ -52,6 +54,10 @@ const activeCamera = ref(1)
 
 let trendChart: echarts.ECharts | null = null
 let typeChart: echarts.ECharts | null = null
+const handleEchartsResize = () => {
+  trendChart?.resize()
+  typeChart?.resize()
+}
 
 const darkTooltip: echarts.EChartsOption['tooltip'] = {
   backgroundColor: 'rgba(3, 8, 41, 0.9)',
@@ -199,16 +205,21 @@ onMounted(async () => {
 
   refreshTimer = window.setInterval(fetchRealtimeData, 5000)
 
-  window.addEventListener('resize', () => {
-    trendChart?.resize()
-    typeChart?.resize()
-  })
+  connectAlertSocket()
+  startDemo().then(res => console.log('演示开始:', res)).catch(err => console.error('演示开始失败:', err))
+
+  window.addEventListener('resize', handleEchartsResize)
 })
 
 onUnmounted(() => {
   if (refreshTimer) clearInterval(refreshTimer)
+  stopDemo().catch(() => {})
+  disconnectAlertSocket()
+  window.removeEventListener('resize', handleEchartsResize)
   trendChart?.dispose()
   typeChart?.dispose()
+  trendChart = null
+  typeChart = null
 })
 </script>
 
