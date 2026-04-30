@@ -140,8 +140,8 @@ const refreshData = () => {
     time: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
   }
   trackingList.value.unshift(newRecord)
-  if (trackingList.value.length > 10) {
-    trackingList.value.pop()
+  if (trackingList.value.length > 50) {
+    trackingList.value.splice(50)
   }
 }
 
@@ -192,9 +192,11 @@ onUnmounted(() => {
   <div class="min-h-[calc(100vh-80px)] bg-[#081832]">
     <div class="w-[98%] mx-auto py-4">
       <div class="mb-5">
-        <div class="inline-block bg-[#034c6a] rounded-[18px] px-[30px] py-2 text-white font-bold text-lg">
-          <i
-            class="inline-block w-[18px] h-[18px] relative top-0.5 mr-2 bg-white bg-center bg-no-repeat bg-contain"></i>
+        <div
+          class="inline-flex items-center bg-[#034c6a] rounded-[18px] px-[30px] py-2 text-white font-bold text-lg gap-2">
+          <el-icon :size="20" color="#4b8df8">
+            <VideoCamera />
+          </el-icon>
           实时监控
         </div>
       </div>
@@ -204,9 +206,7 @@ onUnmounted(() => {
         <div
           class="flex items-center justify-between py-3 px-5 bg-[#072951] border border-dashed border-[#034c6a] rounded-lg">
           <div class="flex items-center gap-2 text-[#e8f7fe] text-sm whitespace-nowrap">
-            <el-icon :size="20" color="#4b8df8">
-              <VideoCamera />
-            </el-icon>
+
             <span>RTSP 视频流地址</span>
           </div>
           <div class="flex gap-2 flex-1 ml-4">
@@ -238,29 +238,29 @@ onUnmounted(() => {
 
       <!-- Stat Cards -->
       <div class="flex flex-wrap gap-[1%] mb-4">
-        <div class="stat-item">
-          <div class="stat-value">{{ stats.totalVehicles }}</div>
-          <div class="stat-label">总车辆数</div>
+        <div class="w-[15.66%] bg-[#034c6a] rounded-lg p-4 text-center">
+          <div class="text-[28px] font-bold text-[#ffff43] leading-tight">{{ stats.totalVehicles }}</div>
+          <div class="text-xs text-[#e8f7fe] mt-1">总车辆数</div>
         </div>
-        <div class="stat-item">
-          <div class="stat-value text-[#25f3e6]">{{ stats.busCount }}</div>
-          <div class="stat-label">今日巴士</div>
+        <div class="w-[15.66%] bg-[#034c6a] rounded-lg p-4 text-center">
+          <div class="text-[28px] font-bold text-[#25f3e6] leading-tight">{{ stats.busCount }}</div>
+          <div class="text-xs text-[#e8f7fe] mt-1">巴士</div>
         </div>
-        <div class="stat-item">
-          <div class="stat-value text-[#4b8df8]">{{ stats.truckCount }}</div>
-          <div class="stat-label">今日卡车</div>
+        <div class="w-[15.66%] bg-[#034c6a] rounded-lg p-4 text-center">
+          <div class="text-[28px] font-bold text-[#4b8df8] leading-tight">{{ stats.truckCount }}</div>
+          <div class="text-xs text-[#e8f7fe] mt-1">卡车</div>
         </div>
-        <div class="stat-item">
-          <div class="stat-value text-[#ff4e4e]">{{ stats.tankerCount }}</div>
-          <div class="stat-label">油罐车</div>
+        <div class="w-[15.66%] bg-[#034c6a] rounded-lg p-4 text-center">
+          <div class="text-[28px] font-bold text-[#ff4e4e] leading-tight">{{ stats.tankerCount }}</div>
+          <div class="text-xs text-[#e8f7fe] mt-1">油罐车</div>
         </div>
-        <div class="stat-item">
-          <div class="stat-value text-[#ffff43]">{{ stats.onlineCameras }}</div>
-          <div class="stat-label">在线摄像头</div>
+        <div class="w-[15.66%] bg-[#034c6a] rounded-lg p-4 text-center">
+          <div class="text-[28px] font-bold text-[#ffff43] leading-tight">{{ stats.onlineCameras }}</div>
+          <div class="text-xs text-[#e8f7fe] mt-1">在线摄像头</div>
         </div>
-        <div class="stat-item">
-          <div class="stat-value text-[#ff4e4e]">{{ stats.todayWarnings }}</div>
-          <div class="stat-label">今日预警</div>
+        <div class="w-[15.66%] bg-[#034c6a] rounded-lg p-4 text-center">
+          <div class="text-[28px] font-bold text-[#ff4e4e] leading-tight">{{ stats.todayWarnings }}</div>
+          <div class="text-xs text-[#e8f7fe] mt-1">今日预警</div>
         </div>
       </div>
 
@@ -268,34 +268,48 @@ onUnmounted(() => {
       <div class="flex gap-4">
         <!-- Left Column -->
         <div class="w-[16.666%]">
-          <div class="panel-wrapper">
-            <div class="panel-title-pill">实时跟踪列表</div>
-            <div class="panel-body">
-              <div v-for="item in trackingList" :key="item.id" class="tracking-item last:border-b-0">
-                <div class="tracking-id">{{ item.id }}</div>
-                <div class="tracking-info">
-                  <span :class="['tag-sm', getCategoryClass(item.category)]">
+          <div class="relative border border-[#034c6a] rounded-lg mt-6 mb-4
+            shadow-[-10px_0_15px_#034c6a_inset,0_-10px_15px_#034c6a_inset,10px_0_15px_#034c6a_inset,0_10px_15px_#034c6a_inset]
+            box-border">
+            <div
+              class="absolute -top-3.75 left-[20%] bg-[#034c6a] rounded-[18px] h-8.75 w-3/5 leading-8.75 text-center text-sm font-bold text-white z-10 flex items-center justify-center gap-2 px-3 box-border">
+              实时跟踪列表
+            </div>
+            <div class="pt-5 px-3 pb-3 max-h-[480px] overflow-y-auto">
+              <div v-for="item in trackingList" :key="item.id" class="py-2 border-b border-[#034c6a] last:border-b-0">
+                <div class="text-[13px] font-semibold text-white mb-0.5">{{ item.id }}</div>
+                <div class="flex gap-1.5 items-center mb-0.5">
+                  <span
+                    :class="['px-2 py-0.5 rounded-[10px] text-[10px] font-medium', getCategoryClass(item.category)]">
                     {{ getCategoryLabel(item.category) }}
                   </span>
-                  <span class="tracking-cam">Cam {{ item.cam }}</span>
+                  <span class="text-[11px] text-[#61d2f7]">Cam {{ item.cam }}</span>
                 </div>
-                <div class="tracking-time">{{ item.time }}</div>
+                <div class="text-[11px] text-[#61d2f7]">{{ item.time }}</div>
               </div>
             </div>
           </div>
 
-          <div class="panel-wrapper">
-            <div class="panel-title-pill">今日流量趋势</div>
-            <div class="panel-body" style="padding: 8px;">
-              <div id="trendChart" class="h-[160px]"></div>
+          <div class="relative border border-[#034c6a] rounded-lg mt-6 mb-4
+            shadow-[-10px_0_15px_#034c6a_inset,0_-10px_15px_#034c6a_inset,10px_0_15px_#034c6a_inset,0_10px_15px_#034c6a_inset]
+            box-border">
+            <div
+              class="absolute -top-3.75 left-[20%] bg-[#034c6a] rounded-[18px] h-8.75 w-3/5 leading-8.75 text-center text-sm font-bold text-white z-10 flex items-center justify-center gap-2 px-3 box-border">
+              今日流量趋势
+            </div>
+            <div class="pt-5 px-3 pb-3">
+              <div id="trendChart" class="h-40"></div>
             </div>
           </div>
         </div>
 
         <!-- Center Column -->
         <div class="w-1/2">
-          <div class="panel-wrapper">
-            <div class="panel-title-pill">
+          <div class="relative border border-[#034c6a] rounded-lg mt-6 mb-4
+            shadow-[-10px_0_15px_#034c6a_inset,0_-10px_15px_#034c6a_inset,10px_0_15px_#034c6a_inset,0_10px_15px_#034c6a_inset]
+            box-border">
+            <div
+              class="absolute -top-3.75 left-[20%] bg-[#034c6a] rounded-[18px] h-8.75 w-3/5 leading-8.75 text-center text-sm font-bold text-white z-10 flex items-center justify-center gap-2 px-3 box-border">
               <span>实时监控</span>
               <div class="flex items-center">
                 <select v-model="activeCamera"
@@ -306,7 +320,7 @@ onUnmounted(() => {
                 </select>
               </div>
             </div>
-            <div class="panel-body" style="padding: 0;">
+            <div class="pt-5 px-3 pb-3">
               <div class="aspect-video bg-gradient-to-br from-[#072951] to-[#081832] rounded overflow-hidden relative">
                 <div class="absolute inset-0 flex flex-col justify-between p-4">
                   <div class="flex justify-between text-white/70 text-xs">
@@ -327,33 +341,50 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <div class="panel-wrapper">
-            <div class="panel-title-pill">
+          <div class="relative border border-[#034c6a] rounded-lg mt-6 mb-4
+            shadow-[-10px_0_15px_#034c6a_inset,0_-10px_15px_#034c6a_inset,10px_0_15px_#034c6a_inset,0_10px_15px_#034c6a_inset]
+            box-border">
+            <div
+              class="absolute -top-3.75 left-[20%] bg-[#034c6a] rounded-[18px] h-8.75 w-3/5 leading-8.75 text-center text-sm font-bold text-white z-10 flex items-center justify-center gap-2 px-3 box-border">
               <span>隧道模拟视图</span>
-              <span class="tunnel-length">全长: 2.5km</span>
+              <span class="text-[11px] font-normal text-[#61d2f7]">全长: 2.5km</span>
             </div>
-            <div class="panel-body">
+            <div class="pt-5 px-3 pb-3">
               <div class="relative h-20 rounded-lg border border-[#034c6a]"
                 style="background: linear-gradient(90deg, #072951 0%, #034c6a 50%, #072951 100%);">
-                <div v-for="cam in cameras" :key="cam.id" class="cam-marker" :style="{ left: `${(cam.id - 1) * 25}%` }">
-                  <div :class="['cam-dot', cam.status === 'online' ? 'online' : 'offline']">
+                <div v-for="cam in cameras" :key="cam.id" class="absolute top-[15%] flex flex-col items-center"
+                  :style="{ left: `${(cam.id - 1) * 25}%`, transform: 'translateX(-50%)' }">
+                  <div
+                    :class="['w-8 h-8 rounded-full flex items-center justify-center text-white text-sm', cam.status === 'online' ? 'bg-[#4b8df8]' : 'bg-[#64748b]', cam.status === 'online' ? 'shadow-[0_0_8px_rgba(75,141,248,0.5)]' : '']">
                     <el-icon>
                       <VideoCamera />
                     </el-icon>
                   </div>
-                  <div class="cam-label-text">Cam {{ cam.id }}</div>
+                  <div class="mt-0.5 text-[10px] text-[#61d2f7] font-medium">Cam {{ cam.id }}</div>
                 </div>
-                <div class="vehicle on-road" style="left:25%">
-                  <div class="v-icon bus">B</div>
-                  <div class="v-id">ID_016</div>
+                <div class="absolute top-[45%] flex flex-col items-center"
+                  style="left: 25%; transform: translate(-50%, -50%);">
+                  <div
+                    class="w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold text-white shadow-[0_0_6px_rgba(0,0,0,0.3)] bg-[#4b8df8]">
+                    B</div>
+                  <div class="mt-0.5 text-[9px] text-[#61d2f7] bg-[rgba(8,24,50,0.8)] px-1 py-0.5 rounded-sm">ID_016
+                  </div>
                 </div>
-                <div class="vehicle on-road" style="left:50%">
-                  <div class="v-icon truck">T</div>
-                  <div class="v-id">ID_017</div>
+                <div class="absolute top-[45%] flex flex-col items-center"
+                  style="left: 50%; transform: translate(-50%, -50%);">
+                  <div
+                    class="w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold text-[#081832] shadow-[0_0_6px_rgba(0,0,0,0.3)] bg-[#25f3e6]">
+                    T</div>
+                  <div class="mt-0.5 text-[9px] text-[#61d2f7] bg-[rgba(8,24,50,0.8)] px-1 py-0.5 rounded-sm">ID_017
+                  </div>
                 </div>
-                <div class="vehicle on-road" style="left:75%">
-                  <div class="v-icon bus">B</div>
-                  <div class="v-id">ID_018</div>
+                <div class="absolute top-[45%] flex flex-col items-center"
+                  style="left: 75%; transform: translate(-50%, -50%);">
+                  <div
+                    class="w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold text-white shadow-[0_0_6px_rgba(0,0,0,0.3)] bg-[#4b8df8]">
+                    B</div>
+                  <div class="mt-0.5 text-[9px] text-[#61d2f7] bg-[rgba(8,24,50,0.8)] px-1 py-0.5 rounded-sm">ID_018
+                  </div>
                 </div>
               </div>
             </div>
@@ -362,59 +393,41 @@ onUnmounted(() => {
 
         <!-- Right Column -->
         <div class="w-1/3">
-          <div class="panel-wrapper">
-            <div class="panel-title-pill">
-              <span>环境监测数据</span>
-              <span class="pill-status">正常</span>
+          <div class="relative border border-[#034c6a] rounded-lg mt-6 mb-4
+            shadow-[-10px_0_15px_#034c6a_inset,0_-10px_15px_#034c6a_inset,10px_0_15px_#034c6a_inset,0_10px_15px_#034c6a_inset]
+            box-border">
+            <div
+              class="absolute -top-3.75 left-[20%] bg-[#034c6a] rounded-[18px] h-8.75 w-3/5 leading-8.75 text-center text-sm font-bold text-white z-10 flex items-center justify-center gap-2 px-3 box-border">
+              车辆类型分布
             </div>
-            <div class="panel-body">
-              <div class="env-grid">
-                <div class="env-item">
-                  <div class="env-value">24.5°C</div>
-                  <div class="env-label">温度</div>
-                </div>
-                <div class="env-item">
-                  <div class="env-value">65%</div>
-                  <div class="env-label">湿度</div>
-                </div>
-                <div class="env-item">
-                  <div class="env-value">2.3 m/s</div>
-                  <div class="env-label">风速</div>
-                </div>
-                <div class="env-item">
-                  <div class="env-value">良好</div>
-                  <div class="env-label">能见度</div>
-                </div>
-              </div>
+            <div class="pt-5 px-2 pb-2">
+              <div id="typeChart" class="h-80"></div>
             </div>
           </div>
 
-          <div class="panel-wrapper">
-            <div class="panel-title-pill">车辆类型分布</div>
-            <div class="panel-body" style="padding: 8px;">
-              <div id="typeChart" class="h-[160px]"></div>
+          <div class="relative border border-[#034c6a] rounded-lg mt-6 mb-4
+            shadow-[-10px_0_15px_#034c6a_inset,0_-10px_15px_#034c6a_inset,10px_0_15px_#034c6a_inset,0_10px_15px_#034c6a_inset]
+            box-border">
+            <div
+              class="absolute -top-3.75 left-[20%] bg-[#034c6a] rounded-[18px] h-8.75 w-3/5 leading-8.75 text-center text-sm font-bold text-white z-10 flex items-center justify-center gap-2 px-3 box-border">
+              系统状态
             </div>
-          </div>
-
-          <div class="panel-wrapper">
-            <div class="panel-title-pill">系统状态</div>
-            <div class="panel-body">
+            <div class="pt-5 px-5 pb-5">
               <div class="flex flex-col gap-3">
-                <div class="status-row">
-                  <span class="status-label">服务器状态</span>
-                  <span class="status-badge ok">运行中</span>
+                <div class="flex justify-between items-center">
+                  <span class="text-[#61d2f7] text-[13px]">服务器状态</span>
+                  <span
+                    class="text-[12px] px-2.5 py-0.5 rounded-[10px] bg-[rgba(37,243,230,0.2)] text-[#25f3e6] border border-[#25f3e6]">运行中</span>
                 </div>
-                <div class="status-row">
-                  <span class="status-label">数据库连接</span>
-                  <span class="status-badge ok">正常</span>
+                <div class="flex justify-between items-center">
+                  <span class="text-[#61d2f7] text-[13px]">数据库连接</span>
+                  <span
+                    class="text-[12px] px-2.5 py-0.5 rounded-[10px] bg-[rgba(37,243,230,0.2)] text-[#25f3e6] border border-[#25f3e6]">正常</span>
                 </div>
-                <div class="status-row">
-                  <span class="status-label">AI 识别服务</span>
-                  <span class="status-badge ok">运行中</span>
-                </div>
-                <div class="status-row">
-                  <span class="status-label">存储空间</span>
-                  <el-progress :percentage="72" :color="'#4b8df8'" />
+                <div class="flex justify-between items-center">
+                  <span class="text-[#61d2f7] text-[13px]">AI 识别服务</span>
+                  <span
+                    class="text-[12px] px-2.5 py-0.5 rounded-[10px] bg-[rgba(37,243,230,0.2)] text-[#25f3e6] border border-[#25f3e6]">运行中</span>
                 </div>
               </div>
             </div>
@@ -426,107 +439,7 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.stat-item {
-  width: 15.66%;
-  background: #034c6a;
-  border-radius: 8px;
-  padding: 16px 8px;
-  text-align: center;
-}
-
-.stat-value {
-  font-size: 28px;
-  font-weight: 700;
-  color: #ffff43;
-  line-height: 1.2;
-}
-
-.stat-label {
-  font-size: 12px;
-  color: #e8f7fe;
-  margin-top: 4px;
-}
-
-.panel-wrapper {
-  position: relative;
-  box-shadow: -10px 0 15px #034c6a inset,
-    0 -10px 15px #034c6a inset,
-    10px 0 15px #034c6a inset,
-    0 10px 15px #034c6a inset;
-  border: 1px solid #034c6a;
-  border-radius: 8px;
-  box-sizing: border-box;
-  margin-top: 25px;
-  margin-bottom: 16px;
-}
-
-.panel-title-pill {
-  position: absolute;
-  top: -15px;
-  left: 20%;
-  background: #034c6a;
-  border-radius: 18px;
-  height: 35px;
-  width: 60%;
-  line-height: 35px;
-  text-align: center;
-  color: #fff;
-  font-size: 14px;
-  font-weight: bold;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 0 12px;
-  box-sizing: border-box;
-}
-
-.pill-status {
-  font-size: 11px;
-  font-weight: normal;
-  background: rgba(37, 243, 230, 0.2);
-  color: #25f3e6;
-  padding: 0 8px;
-  border-radius: 10px;
-}
-
-.tunnel-length {
-  font-size: 11px;
-  font-weight: normal;
-  color: #61d2f7;
-}
-
-.panel-body {
-  padding: 20px 12px 12px;
-}
-
-.tracking-item {
-  padding: 8px 0;
-  border-bottom: 1px solid #034c6a;
-}
-
-.tracking-id {
-  font-size: 13px;
-  font-weight: 600;
-  color: #fff;
-  margin-bottom: 2px;
-}
-
-.tracking-info {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  margin-bottom: 2px;
-}
-
-.tag-sm {
-  padding: 1px 8px;
-  border-radius: 10px;
-  font-size: 10px;
-  font-weight: 500;
-}
-
+/* 标签颜色类 - 通过 getCategoryClass() 动态绑定 */
 .tag-blue {
   background: rgba(75, 141, 248, 0.25);
   color: #4b8df8;
@@ -551,146 +464,25 @@ onUnmounted(() => {
   border: 1px solid #ff4e4e;
 }
 
-.tracking-cam {
-  font-size: 11px;
-  color: #61d2f7;
-}
-
-.tracking-time {
-  font-size: 11px;
-  color: #61d2f7;
-}
-
-.cam-marker {
-  position: absolute;
-  top: 15%;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.cam-dot {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-size: 14px;
-}
-
-.cam-dot.online {
-  background: #4b8df8;
-  box-shadow: 0 0 8px rgba(75, 141, 248, 0.5);
-}
-
-.cam-dot.offline {
-  background: #64748b;
-}
-
-.cam-label-text {
-  margin-top: 2px;
-  font-size: 10px;
-  color: #61d2f7;
-  font-weight: 500;
-}
-
-.vehicle {
-  position: absolute;
-  top: 45%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.v-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
-  color: #fff;
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
-}
-
-.v-icon.bus {
-  background: #4b8df8;
-}
-
-.v-icon.truck {
-  background: #25f3e6;
-  color: #081832;
-}
-
-.v-id {
-  margin-top: 1px;
-  font-size: 9px;
-  color: #61d2f7;
-  background: rgba(8, 24, 50, 0.8);
-  padding: 1px 4px;
-  border-radius: 2px;
-}
-
-.env-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-.env-item {
-  text-align: center;
-  padding: 12px;
-  background: #072951;
-  border-radius: 8px;
-  border: 1px solid #034c6a;
-}
-
-.env-value {
-  font-size: 18px;
-  font-weight: 600;
-  color: #fff;
-}
-
-.env-label {
-  font-size: 12px;
-  color: #61d2f7;
-  margin-top: 2px;
-}
-
-.status-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.status-label {
-  color: #61d2f7;
-  font-size: 13px;
-}
-
-.status-badge {
-  font-size: 12px;
-  padding: 2px 10px;
-  border-radius: 10px;
-}
-
-.status-badge.ok {
-  background: rgba(37, 243, 230, 0.2);
-  color: #25f3e6;
-  border: 1px solid #25f3e6;
-}
-
+/* Element Plus 组件样式覆盖 */
 :deep(.el-progress__text) {
   color: #61d2f7 !important;
 }
 
 :deep(.el-progress-bar__outer) {
   background: #034c6a;
+}
+
+.overflow-y-auto::-webkit-scrollbar {
+  width: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: #034c6a;
+  border-radius: 2px;
 }
 </style>
