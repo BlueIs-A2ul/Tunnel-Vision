@@ -127,7 +127,7 @@ function goToLogin() {
   >
     <!-- 登录注册卡片 -->
     <div
-      class="w-105 p-8 rounded-2xl flex flex-col items-center"
+      class="w-[480px] p-6 rounded-2xl flex flex-col items-center"
       :style="{ background: `url(${cardBg}) center/cover no-repeat`, border: '1px solid rgba(20, 121, 173, 0.6)' }"
     >
       <!-- 主标题 -->
@@ -160,7 +160,6 @@ function goToLogin() {
       </div>
 
       <!-- 卡片内部内容区 -->
-      <div class="w-[calc(100%-40px)]">
         <!-- 登录表单 -->
         <el-form v-if="activeTab === 'login'" ref="formRef" :model="loginForm" :rules="loginRules" label-position="top"
           @submit.prevent="handleLogin">
@@ -267,7 +266,6 @@ function goToLogin() {
             </button>
           </div>
         </el-form>
-      </div>
     </div>
 
     <!-- Footer -->
