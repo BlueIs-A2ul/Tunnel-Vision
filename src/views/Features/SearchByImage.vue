@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { Plus, Search } from '@element-plus/icons-vue'
 import { searchByImage, type SearchResult } from '@/api/search'
 import { Icon } from '@iconify/vue'
@@ -7,6 +7,9 @@ import { Icon } from '@iconify/vue'
 const imageUrl = ref<string | null>(null)
 const selectedFile = ref<File | null>(null)
 const searchResults = ref<SearchResult[]>([])
+const filteredResults = computed(() =>
+  searchResults.value.filter(item => item.imageUrlList?.length > 0)
+)
 const loading = ref(false)
 
 function handleImageUpload(file: File) {
@@ -140,7 +143,7 @@ function handleReset() {
       <template v-if="searchResults.length > 0">
         <div class="text-sm text-[#61d2f7] mb-3">识别结果</div>
         <div class="grid grid-cols-5 gap-3">
-          <div v-for="(item, index) in searchResults" :key="index" class="flex flex-col">
+          <div v-for="(item, index) in filteredResults" :key="index" class="flex flex-col">
             <div class="aspect-[3/4] bg-[#072951] rounded-lg border border-[#034c6a] overflow-hidden">
               <img :src="item.imageUrlList?.[0] || ''" class="w-full h-full object-contain" alt="搜索结果" />
             </div>
