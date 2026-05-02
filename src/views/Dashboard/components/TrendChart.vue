@@ -6,12 +6,6 @@ const chartRef = ref<HTMLElement | null>(null)
 let chartInstance: echarts.ECharts | null = null
 const handleResize = () => chartInstance?.resize()
 
-// 生成模拟日流量数据
-const generateDailyFlowData = () => {
-  // 模拟日流量趋势：早晚高峰较高，白天中间时段较低
-  return [245, 128, 89, 156, 389, 456, 512, 478, 389, 267, 198, 234, 389, 456, 478, 512, 489, 423, 356, 289, 245, 312, 278, 198]
-}
-
 const initChart = () => {
   if (!chartRef.value) return
 
@@ -81,10 +75,6 @@ onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
   chartInstance?.dispose()
   chartInstance = null
-})
-
-onUnmounted(() => {
-  chartInstance?.dispose()
 })
 
 defineExpose({ resize: () => chartInstance?.resize() })

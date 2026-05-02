@@ -20,8 +20,8 @@ export function connectAlertSocket() {
     console.log('WS 已连接:', socket?.id)
   })
 
-  socket.on('message', (data: any) => {
-    console.log('WS message:', data)
+  socket.on('message', (_data: any) => {
+    //console.log('WS message:', data)
   })
 
   socket.on('disconnect', (reason: any) => {

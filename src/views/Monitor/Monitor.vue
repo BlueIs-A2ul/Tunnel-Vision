@@ -52,6 +52,52 @@ const cameras = ref([
 
 const activeCamera = ref(1)
 
+const videoRef = ref<HTMLVideoElement | null>(null)
+const isVideoPlaying = ref(false)
+const currentPlayTime = ref(0)
+
+function getVideoSrc(camId: number): string {
+  return `./videos/demo_burned_cam_0${camId}.mp4`
+}
+
+function playCamera(camId: number) {
+  if (camId === activeCamera.value && isVideoPlaying.value) return
+
+  if (isVideoPlaying.value && videoRef.value) {
+    currentPlayTime.value = videoRef.value.currentTime
+  }
+
+  activeCamera.value = camId
+
+  if (!isVideoPlaying.value) {
+    isVideoPlaying.value = true
+  }
+}
+
+function onCameraSelect(e: Event) {
+  const camId = Number((e.target as HTMLSelectElement).value)
+  playCamera(camId)
+}
+
+function onVideoTimeUpdate() {
+  if (videoRef.value) {
+    currentPlayTime.value = videoRef.value.currentTime
+  }
+}
+
+function onVideoLoaded() {
+  if (videoRef.value) {
+    if (currentPlayTime.value > 0) {
+      videoRef.value.currentTime = currentPlayTime.value
+    }
+    videoRef.value.play()
+  }
+}
+
+function onVideoEnded() {
+  isVideoPlaying.value = false
+}
+
 let trendChart: echarts.ECharts | null = null
 let typeChart: echarts.ECharts | null = null
 const handleEchartsResize = () => {
@@ -216,6 +262,7 @@ onUnmounted(() => {
   stopDemo().catch(() => { })
   disconnectAlertSocket()
   window.removeEventListener('resize', handleEchartsResize)
+  videoRef.value?.pause()
   trendChart?.dispose()
   typeChart?.dispose()
   trendChart = null
@@ -351,7 +398,7 @@ onUnmounted(() => {
                   class="absolute -top-3.75 left-[20%] bg-[#034c6a] rounded-[18px] h-8.75 w-3/5 leading-8.75 text-center text-sm font-bold text-white z-10 flex items-center justify-center gap-2 px-3 box-border">
                   <span>实时监控</span>
                   <div class="flex items-center">
-                    <select v-model="activeCamera"
+                    <select :value="activeCamera" @change="onCameraSelect"
                       class="bg-transparent border border-white/20 text-white rounded px-1.5 py-0.5 text-xs outline-none cursor-pointer">
                       <option v-for="cam in cameras" :key="cam.id" :value="cam.id" class="bg-[#081832] text-white">
                         {{ cam.name }} ({{ cam.status === 'online' ? '在线' : '离线' }})
@@ -362,7 +409,18 @@ onUnmounted(() => {
                 <div class="pt-5 px-3 pb-3">
                   <div
                     class="aspect-video bg-gradient-to-br from-[#072951] to-[#081832] rounded overflow-hidden relative">
-                    <div class="absolute inset-0 flex flex-col justify-between p-4">
+                    <video
+                      v-if="isVideoPlaying"
+                      :key="activeCamera"
+                      ref="videoRef"
+                      :src="getVideoSrc(activeCamera)"
+                      class="w-full h-full object-cover"
+                      controls
+                      @timeupdate="onVideoTimeUpdate"
+                      @loadedmetadata="onVideoLoaded"
+                      @ended="onVideoEnded"
+                    />
+                    <div v-else class="absolute inset-0 flex flex-col justify-between p-4">
                       <div class="flex justify-between text-white/70 text-xs">
                         <span>{{cameras.find(c => c.id === activeCamera)?.name}}</span>
                         <span>{{ new Date().toLocaleString('zh-CN') }}</span>
@@ -371,7 +429,7 @@ onUnmounted(() => {
                         <el-icon :size="64" class="mb-2 opacity-50">
                           <VideoCamera />
                         </el-icon>
-                        <p>实时监控画面</p>
+                        <p>点击隧道模拟视图中的摄像头图标开始播放</p>
                       </div>
                       <div class="flex justify-center text-white/40 text-xs">
                         <span>Camera {{ activeCamera }} - 隧道监控</span>
@@ -440,7 +498,7 @@ onUnmounted(() => {
                   <div v-for="cam in cameras" :key="cam.id"
                     class="absolute top-[45%] flex flex-col items-center cursor-pointer"
                     :style="{ left: `${(cam.id - 1) * 25}%`, transform: 'translate(-50%, -50%)' }"
-                    @click="activeCamera = cam.id">
+                    @click="playCamera(cam.id)">
                     <div
                       :class="['w-8 h-8 rounded-full flex items-center justify-center text-white text-sm transition-all duration-300', cam.status === 'online' ? 'bg-[#4b8df8]' : 'bg-[#64748b]', cam.status === 'online' ? 'shadow-[0_0_8px_rgba(75,141,248,0.5)]' : '', cam.id === activeCamera ? 'ring-2 ring-[#25f3e6] ring-offset-2 ring-offset-[#081832] shadow-[0_0_16px_rgba(37,243,230,0.7)] scale-110' : '']">
                       <el-icon>
