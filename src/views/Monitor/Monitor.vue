@@ -47,7 +47,7 @@ const cameras = ref([
   { id: 2, name: 'Camera 02', status: 'online', location: '中段A' },
   { id: 3, name: 'Camera 03', status: 'online', location: '中段B' },
   { id: 4, name: 'Camera 04', status: 'online', location: '中段C' },
-  { id: 5, name: 'Camera 05', status: 'offline', location: '出口段' },
+  { id: 5, name: 'Camera 05', status: 'online', location: '出口段' },
 ])
 
 const activeCamera = ref(1)
@@ -213,7 +213,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   if (refreshTimer) clearInterval(refreshTimer)
-  stopDemo().catch(() => {})
+  stopDemo().catch(() => { })
   disconnectAlertSocket()
   window.removeEventListener('resize', handleEchartsResize)
   trendChart?.dispose()
@@ -338,131 +338,117 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- Center Column -->
-        <div class="w-1/2">
-          <div class="relative border border-[#034c6a] rounded-lg mt-6 mb-4
-            shadow-[-10px_0_15px_#034c6a_inset,0_-10px_15px_#034c6a_inset,10px_0_15px_#034c6a_inset,0_10px_15px_#034c6a_inset]
-            box-border">
-            <div
-              class="absolute -top-3.75 left-[20%] bg-[#034c6a] rounded-[18px] h-8.75 w-3/5 leading-8.75 text-center text-sm font-bold text-white z-10 flex items-center justify-center gap-2 px-3 box-border">
-              <span>实时监控</span>
-              <div class="flex items-center">
-                <select v-model="activeCamera"
-                  class="bg-transparent border border-white/20 text-white rounded px-1.5 py-0.5 text-xs outline-none cursor-pointer">
-                  <option v-for="cam in cameras" :key="cam.id" :value="cam.id" class="bg-[#081832] text-white">
-                    {{ cam.name }} ({{ cam.status === 'online' ? '在线' : '离线' }})
-                  </option>
-                </select>
+        <!-- Right Column (merged center + right) -->
+        <div class="flex-1 flex flex-col gap-4 min-w-0">
+          <!-- Top Section: flex row -->
+          <div class="flex gap-4 min-w-0">
+            <!-- 实时监控 -->
+            <div class="flex-1 min-w-0">
+              <div class="relative border border-[#034c6a] rounded-lg mt-6 mb-4
+                shadow-[-10px_0_15px_#034c6a_inset,0_-10px_15px_#034c6a_inset,10px_0_15px_#034c6a_inset,0_10px_15px_#034c6a_inset]
+                box-border">
+                <div
+                  class="absolute -top-3.75 left-[20%] bg-[#034c6a] rounded-[18px] h-8.75 w-3/5 leading-8.75 text-center text-sm font-bold text-white z-10 flex items-center justify-center gap-2 px-3 box-border">
+                  <span>实时监控</span>
+                  <div class="flex items-center">
+                    <select v-model="activeCamera"
+                      class="bg-transparent border border-white/20 text-white rounded px-1.5 py-0.5 text-xs outline-none cursor-pointer">
+                      <option v-for="cam in cameras" :key="cam.id" :value="cam.id" class="bg-[#081832] text-white">
+                        {{ cam.name }} ({{ cam.status === 'online' ? '在线' : '离线' }})
+                      </option>
+                    </select>
+                  </div>
+                </div>
+                <div class="pt-5 px-3 pb-3">
+                  <div
+                    class="aspect-video bg-gradient-to-br from-[#072951] to-[#081832] rounded overflow-hidden relative">
+                    <div class="absolute inset-0 flex flex-col justify-between p-4">
+                      <div class="flex justify-between text-white/70 text-xs">
+                        <span>{{cameras.find(c => c.id === activeCamera)?.name}}</span>
+                        <span>{{ new Date().toLocaleString('zh-CN') }}</span>
+                      </div>
+                      <div class="flex flex-col items-center text-white/40">
+                        <el-icon :size="64" class="mb-2 opacity-50">
+                          <VideoCamera />
+                        </el-icon>
+                        <p>实时监控画面</p>
+                      </div>
+                      <div class="flex justify-center text-white/40 text-xs">
+                        <span>Camera {{ activeCamera }} - 隧道监控</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-            <div class="pt-5 px-3 pb-3">
-              <div class="aspect-video bg-gradient-to-br from-[#072951] to-[#081832] rounded overflow-hidden relative">
-                <div class="absolute inset-0 flex flex-col justify-between p-4">
-                  <div class="flex justify-between text-white/70 text-xs">
-                    <span>{{cameras.find(c => c.id === activeCamera)?.name}}</span>
-                    <span>{{ new Date().toLocaleString('zh-CN') }}</span>
-                  </div>
-                  <div class="flex flex-col items-center text-white/40">
-                    <el-icon :size="64" class="mb-2 opacity-50">
-                      <VideoCamera />
-                    </el-icon>
-                    <p>实时监控画面</p>
-                  </div>
-                  <div class="flex justify-center text-white/40 text-xs">
-                    <span>Camera {{ activeCamera }} - 隧道监控</span>
+            <!-- 车辆类型分布 + 系统状态 -->
+            <div class="w-[35%] min-w-0">
+              <div class="relative border border-[#034c6a] rounded-lg mt-6 mb-4
+                shadow-[-10px_0_15px_#034c6a_inset,0_-10px_15px_#034c6a_inset,10px_0_15px_#034c6a_inset,0_10px_15px_#034c6a_inset]
+                box-border">
+                <div
+                  class="absolute -top-3.75 left-[20%] bg-[#034c6a] rounded-[18px] h-8.75 w-3/5 leading-8.75 text-center text-sm font-bold text-white z-10 flex items-center justify-center gap-2 px-3 box-border">
+                  车辆类型分布
+                </div>
+                <div class="pt-5 px-2 pb-2">
+                  <div id="typeChart" class="h-80"></div>
+                </div>
+              </div>
+
+              <div class="relative border border-[#034c6a] rounded-lg mt-6 mb-4
+                shadow-[-10px_0_15px_#034c6a_inset,0_-10px_15px_#034c6a_inset,10px_0_15px_#034c6a_inset,0_10px_15px_#034c6a_inset]
+                box-border">
+                <div
+                  class="absolute -top-3.75 left-[20%] bg-[#034c6a] rounded-[18px] h-8.75 w-3/5 leading-8.75 text-center text-sm font-bold text-white z-10 flex items-center justify-center gap-2 px-3 box-border">
+                  系统状态
+                </div>
+                <div class="pt-5 px-5 pb-5">
+                  <div class="flex flex-col gap-3">
+                    <div class="flex justify-between items-center">
+                      <span class="text-[#61d2f7] text-[13px]">服务器状态</span>
+                      <span
+                        class="text-[12px] px-2.5 py-0.5 rounded-[10px] bg-[rgba(37,243,230,0.2)] text-[#25f3e6] border border-[#25f3e6]">运行中</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                      <span class="text-[#61d2f7] text-[13px]">数据库连接</span>
+                      <span
+                        class="text-[12px] px-2.5 py-0.5 rounded-[10px] bg-[rgba(37,243,230,0.2)] text-[#25f3e6] border border-[#25f3e6]">正常</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                      <span class="text-[#61d2f7] text-[13px]">AI 识别服务</span>
+                      <span
+                        class="text-[12px] px-2.5 py-0.5 rounded-[10px] bg-[rgba(37,243,230,0.2)] text-[#25f3e6] border border-[#25f3e6]">运行中</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-
-          <div class="relative border border-[#034c6a] rounded-lg mt-6 mb-4
-            shadow-[-10px_0_15px_#034c6a_inset,0_-10px_15px_#034c6a_inset,10px_0_15px_#034c6a_inset,0_10px_15px_#034c6a_inset]
-            box-border">
-            <div
-              class="absolute -top-3.75 left-[20%] bg-[#034c6a] rounded-[18px] h-8.75 w-3/5 leading-8.75 text-center text-sm font-bold text-white z-10 flex items-center justify-center gap-2 px-3 box-border">
-              <span>隧道模拟视图</span>
-              <span class="text-[11px] font-normal text-[#61d2f7]">全长: 2.5km</span>
-            </div>
-            <div class="pt-5 px-3 pb-3">
-              <div class="relative h-20 rounded-lg border border-[#034c6a]"
-                style="background: linear-gradient(90deg, #072951 0%, #034c6a 50%, #072951 100%);">
-                <div v-for="cam in cameras" :key="cam.id" class="absolute top-[15%] flex flex-col items-center"
-                  :style="{ left: `${(cam.id - 1) * 25}%`, transform: 'translateX(-50%)' }">
-                  <div
-                    :class="['w-8 h-8 rounded-full flex items-center justify-center text-white text-sm', cam.status === 'online' ? 'bg-[#4b8df8]' : 'bg-[#64748b]', cam.status === 'online' ? 'shadow-[0_0_8px_rgba(75,141,248,0.5)]' : '']">
-                    <el-icon>
-                      <VideoCamera />
-                    </el-icon>
-                  </div>
-                  <div class="mt-0.5 text-[10px] text-[#61d2f7] font-medium">Cam {{ cam.id }}</div>
-                </div>
-                <div class="absolute top-[45%] flex flex-col items-center"
-                  style="left: 25%; transform: translate(-50%, -50%);">
-                  <div
-                    class="w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold text-white shadow-[0_0_6px_rgba(0,0,0,0.3)] bg-[#4b8df8]">
-                    B</div>
-                  <div class="mt-0.5 text-[9px] text-[#61d2f7] bg-[rgba(8,24,50,0.8)] px-1 py-0.5 rounded-sm">ID_016
-                  </div>
-                </div>
-                <div class="absolute top-[45%] flex flex-col items-center"
-                  style="left: 50%; transform: translate(-50%, -50%);">
-                  <div
-                    class="w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold text-[#081832] shadow-[0_0_6px_rgba(0,0,0,0.3)] bg-[#25f3e6]">
-                    T</div>
-                  <div class="mt-0.5 text-[9px] text-[#61d2f7] bg-[rgba(8,24,50,0.8)] px-1 py-0.5 rounded-sm">ID_017
-                  </div>
-                </div>
-                <div class="absolute top-[45%] flex flex-col items-center"
-                  style="left: 75%; transform: translate(-50%, -50%);">
-                  <div
-                    class="w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold text-white shadow-[0_0_6px_rgba(0,0,0,0.3)] bg-[#4b8df8]">
-                    B</div>
-                  <div class="mt-0.5 text-[9px] text-[#61d2f7] bg-[rgba(8,24,50,0.8)] px-1 py-0.5 rounded-sm">ID_018
-                  </div>
-                </div>
+          <!-- Bottom Section: 隧道模拟视图 -->
+          <div>
+            <div class="relative border border-[#034c6a] rounded-lg mt-6 mb-4
+              shadow-[-10px_0_15px_#034c6a_inset,0_-10px_15px_#034c6a_inset,10px_0_15px_#034c6a_inset,0_10px_15px_#034c6a_inset]
+              box-border">
+              <div
+                class="absolute -top-3.75 left-[20%] bg-[#034c6a] rounded-[18px] h-8.75 w-3/5 leading-8.75 text-center text-sm font-bold text-white z-10 flex items-center justify-center gap-2 px-3 box-border">
+                <span>隧道模拟视图</span>
+                <span class="text-[11px] font-normal text-[#61d2f7]">全长: 2.5km</span>
               </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Right Column -->
-        <div class="w-1/3">
-          <div class="relative border border-[#034c6a] rounded-lg mt-6 mb-4
-            shadow-[-10px_0_15px_#034c6a_inset,0_-10px_15px_#034c6a_inset,10px_0_15px_#034c6a_inset,0_10px_15px_#034c6a_inset]
-            box-border">
-            <div
-              class="absolute -top-3.75 left-[20%] bg-[#034c6a] rounded-[18px] h-8.75 w-3/5 leading-8.75 text-center text-sm font-bold text-white z-10 flex items-center justify-center gap-2 px-3 box-border">
-              车辆类型分布
-            </div>
-            <div class="pt-5 px-2 pb-2">
-              <div id="typeChart" class="h-80"></div>
-            </div>
-          </div>
-
-          <div class="relative border border-[#034c6a] rounded-lg mt-6 mb-4
-            shadow-[-10px_0_15px_#034c6a_inset,0_-10px_15px_#034c6a_inset,10px_0_15px_#034c6a_inset,0_10px_15px_#034c6a_inset]
-            box-border">
-            <div
-              class="absolute -top-3.75 left-[20%] bg-[#034c6a] rounded-[18px] h-8.75 w-3/5 leading-8.75 text-center text-sm font-bold text-white z-10 flex items-center justify-center gap-2 px-3 box-border">
-              系统状态
-            </div>
-            <div class="pt-5 px-5 pb-5">
-              <div class="flex flex-col gap-3">
-                <div class="flex justify-between items-center">
-                  <span class="text-[#61d2f7] text-[13px]">服务器状态</span>
-                  <span
-                    class="text-[12px] px-2.5 py-0.5 rounded-[10px] bg-[rgba(37,243,230,0.2)] text-[#25f3e6] border border-[#25f3e6]">运行中</span>
-                </div>
-                <div class="flex justify-between items-center">
-                  <span class="text-[#61d2f7] text-[13px]">数据库连接</span>
-                  <span
-                    class="text-[12px] px-2.5 py-0.5 rounded-[10px] bg-[rgba(37,243,230,0.2)] text-[#25f3e6] border border-[#25f3e6]">正常</span>
-                </div>
-                <div class="flex justify-between items-center">
-                  <span class="text-[#61d2f7] text-[13px]">AI 识别服务</span>
-                  <span
-                    class="text-[12px] px-2.5 py-0.5 rounded-[10px] bg-[rgba(37,243,230,0.2)] text-[#25f3e6] border border-[#25f3e6]">运行中</span>
+              <div class="pt-5 px-3 pb-3">
+                <div class="relative h-20 rounded-lg border border-[#034c6a]"
+                  style="background: linear-gradient(90deg, #072951 0%, #034c6a 50%, #072951 100%);">
+                  <div v-for="cam in cameras" :key="cam.id"
+                    class="absolute top-[45%] flex flex-col items-center cursor-pointer"
+                    :style="{ left: `${(cam.id - 1) * 25}%`, transform: 'translate(-50%, -50%)' }"
+                    @click="activeCamera = cam.id">
+                    <div
+                      :class="['w-8 h-8 rounded-full flex items-center justify-center text-white text-sm transition-all duration-300', cam.status === 'online' ? 'bg-[#4b8df8]' : 'bg-[#64748b]', cam.status === 'online' ? 'shadow-[0_0_8px_rgba(75,141,248,0.5)]' : '', cam.id === activeCamera ? 'ring-2 ring-[#25f3e6] ring-offset-2 ring-offset-[#081832] shadow-[0_0_16px_rgba(37,243,230,0.7)] scale-110' : '']">
+                      <el-icon>
+                        <VideoCamera />
+                      </el-icon>
+                    </div>
+                    <div class="mt-0.5 text-[10px] text-[#61d2f7] font-medium">{{ cam.name }}</div>
+                  </div>
                 </div>
               </div>
             </div>
