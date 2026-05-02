@@ -1,34 +1,78 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { Loading } from '@element-plus/icons-vue'
+import { getVehiclesWithImages } from '@/api/vehicles'
+import type { VehicleRecord } from '@/types/vehicle'
 
 const selectedDate = ref(new Date().toISOString().split('T')[0])
+const vehicleRecords = ref<VehicleRecord[]>([])
+const loading = ref(false)
 
-const vehicleRecords = ref([
-  {
-    id: 'ID_003',
-    category: 'BUS',
-    time: '2026-03-29 20:31:03',
-    status: '正常驶离',
-    imageCount: 4,
-  },
-  {
-    id: 'ID_002',
-    category: 'TRUCK',
-    time: '2026-03-29 20:30:50',
-    status: '正常驶离',
-    imageCount: 4,
-  },
-  {
-    id: 'ID_001',
-    category: 'TRUCK',
-    time: '2026-03-29 20:29:04',
-    status: '正常驶离',
-    imageCount: 3,
-  },
-])
+const statusLabels: Record<string, string> = {
+  moving: '行驶中',
+  exited: '已离开',
+  abnormal: '异常',
+}
+
+const statusStyles: Record<string, string> = {
+  moving: 'text-[#25f3e6] bg-[rgba(37,243,230,0.1)] border border-[#25f3e6]',
+  exited: 'text-[#61d2f7] bg-[rgba(97,210,247,0.1)] border border-[#61d2f7]',
+  abnormal: 'text-[#ff4e4e] bg-[rgba(255,78,78,0.1)] border border-[#ff4e4e]',
+}
+
+const typeLabels: Record<string, string> = {
+  bus: 'BUS',
+  truck: 'TRUCK',
+  car: 'CAR',
+  tanker: 'TANKER',
+}
+
+function getTypeStyle(type: string): string {
+  const styles: Record<string, string> = {
+    bus: 'bg-[rgba(75,141,248,0.2)] text-[#4b8df8] border-[#4b8df8]',
+    truck: 'bg-[rgba(37,243,230,0.2)] text-[#25f3e6] border-[#25f3e6]',
+    car: 'bg-[rgba(255,255,67,0.2)] text-[#ffff43] border-[#ffff43]',
+    tanker: 'bg-[rgba(255,78,78,0.2)] text-[#ff4e4e] border-[#ff4e4e]',
+  }
+  return styles[type] || styles.bus
+}
+
+function formatTime(raw: unknown): string {
+  if (!raw) return '--'
+  if (typeof raw === 'string') {
+    const d = new Date(raw)
+    return isNaN(d.getTime()) ? raw : d.toLocaleString('zh-CN', { hour12: false })
+  }
+  if (typeof raw === 'number') {
+    return new Date(raw).toLocaleString('zh-CN', { hour12: false })
+  }
+  return String(raw)
+}
+
+function handleImgError(e: Event) {
+  const el = e.target as HTMLElement
+  el.style.display = 'none'
+}
+
+async function fetchData() {
+  loading.value = true
+  try {
+    const res = await getVehiclesWithImages(selectedDate.value)
+    if (res.code === 1 && res.data) {
+      vehicleRecords.value = res.data
+    } else {
+      ElMessage.warning(res.msg || '获取数据失败')
+    }
+  } catch (err) {
+    console.error('获取车辆归档数据失败:', err)
+    ElMessage.error('获取数据失败，请检查网络连接')
+  } finally {
+    loading.value = false
+  }
+}
 
 const refreshData = () => {
-  console.log('刷新数据', selectedDate.value)
+  fetchData()
 }
 
 const settingsDialogVisible = ref(false)
@@ -66,6 +110,8 @@ function saveSettings() {
   ElMessage.success('设置已保存')
   settingsDialogVisible.value = false
 }
+
+onMounted(fetchData)
 </script>
 
 <template>
@@ -92,31 +138,49 @@ function saveSettings() {
         </div>
       </div>
 
-      <div class="flex flex-col gap-2">
+      <div v-if="loading" class="flex justify-center py-20">
+        <el-icon class="is-loading" :size="32" color="#4b8df8">
+          <Loading />
+        </el-icon>
+      </div>
+
+      <div v-else-if="vehicleRecords.length === 0" class="text-center py-20 text-[#61d2f7] text-sm">
+        暂无车辆归档数据
+      </div>
+
+      <div v-else class="flex flex-col gap-2">
         <div v-for="(record, index) in vehicleRecords" :key="record.id" class="record-card"
           :class="index % 2 === 0 ? 'bg-[#072951]' : 'bg-[rgba(7,41,81,0.5)]'">
           <div class="flex items-center gap-3 mb-4">
-            <span class="text-base font-semibold text-white">{{ record.id }}</span>
-            <span :class="[
-              'px-2.5 py-0.5 rounded-xl text-xs font-medium border',
-              record.category === 'BUS'
-                ? 'bg-[rgba(75,141,248,0.2)] text-[#4b8df8] border-[#4b8df8]'
-                : 'bg-[rgba(37,243,230,0.2)] text-[#25f3e6] border-[#25f3e6]'
-            ]">
-              [{{ record.category }}]
+            <span class="text-base font-semibold text-white">{{ record.vehicleUid }}</span>
+            <span :class="['px-2.5 py-0.5 rounded-xl text-xs font-medium border', getTypeStyle(record.type)]">
+              {{ typeLabels[record.type] || record.type }}
             </span>
-            <span class="text-sm text-[#61d2f7]">{{ record.time }}</span>
-            <span class="text-xs text-[#25f3e6] bg-[rgba(37,243,230,0.1)] px-2 py-0.5 rounded">{{ record.status
-            }}</span>
+            <span class="text-sm text-[#61d2f7]">{{ formatTime(record.lastSeenTime) }}</span>
+            <span :class="['text-xs px-2 py-0.5 rounded', statusStyles[record.status] || '']">
+              {{ statusLabels[record.status] || record.status }}
+            </span>
           </div>
           <div class="flex gap-3 flex-wrap">
-            <div v-for="i in record.imageCount" :key="i" class="w-[120px] h-[90px]">
-              <div
-                class="w-full h-full bg-[#034c6a] rounded-md flex items-center justify-center border border-[#034c6a]"
-                style="box-shadow: inset -3px 0 8px #61d2f7, inset 3px 0 8px #61d2f7">
-                <span class="text-xs text-[#61d2f7]">车辆图片 {{ i }}</span>
+            <template v-if="record.images.length > 0">
+              <div v-for="(img, i) in record.images" :key="i" class="w-[120px] h-[90px]">
+                <div
+                  class="w-full h-full bg-[#034c6a] rounded-md overflow-hidden border border-[#034c6a] flex items-center justify-center"
+                  style="box-shadow: inset -3px 0 8px #61d2f7, inset 3px 0 8px #61d2f7">
+                  <img :src="img.imageUrl" :alt="`图片 ${i + 1}`"
+                    class="w-full h-full object-cover" @error="handleImgError" />
+                </div>
               </div>
-            </div>
+            </template>
+            <template v-else>
+              <div class="w-[120px] h-[90px]">
+                <div
+                  class="w-full h-full bg-[#034c6a] rounded-md flex items-center justify-center border border-[#034c6a]"
+                  style="box-shadow: inset -3px 0 8px #61d2f7, inset 3px 0 8px #61d2f7">
+                  <span class="text-xs text-[#61d2f7]">暂无图片</span>
+                </div>
+              </div>
+            </template>
           </div>
         </div>
       </div>
