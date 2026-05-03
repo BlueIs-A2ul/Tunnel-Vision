@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { SwitchButton } from '@element-plus/icons-vue'
 import { Icon } from '@iconify/vue'
-import { getSystemSettings, updateSystemSettings } from '@/api/settings'
+import { getSystemConfig, saveSystemConfig } from '@/api/settings'
 import type { SystemSettings } from '@/types/settings'
 
 const router = useRouter()
@@ -26,14 +26,14 @@ async function handleLogout() {
 
 const settingsLoading = ref(false)
 const systemSettings = ref<SystemSettings>({
-  defaultCameraCount: 5,
-  videoSyncFps: 25,
-  frameExtractInterval: 4,
+  cameraCount: 5,
+  frameRate: 25,
+  detectionInterval: 4,
 })
 
 async function fetchSystemSettings() {
   try {
-    const res = await getSystemSettings()
+    const res = await getSystemConfig()
     if (res.code === 1 && res.data) {
       systemSettings.value = res.data
     }
@@ -45,7 +45,7 @@ async function fetchSystemSettings() {
 async function handleSaveSettings() {
   settingsLoading.value = true
   try {
-    const res = await updateSystemSettings(systemSettings.value)
+    const res = await saveSystemConfig(systemSettings.value)
     if (res.code !== 1) throw new Error(res.msg || '保存失败')
     ElMessage.success('系统参数已保存')
   } catch (error: any) {
@@ -101,17 +101,17 @@ onMounted(() => {
             <div class="flex flex-col gap-1">
               <div class="flex items-center justify-between py-3 border-b border-[#034c6a]">
                 <span class="text-[#61d2f7] text-sm">默认摄像头数量</span>
-                <el-input-number v-model="systemSettings.defaultCameraCount" :min="1" :max="100" :step="1"
+                <el-input-number v-model="systemSettings.cameraCount" :min="1" :max="100" :step="1"
                   controls-position="right" class="settings-input-number" />
               </div>
               <div class="flex items-center justify-between py-3 border-b border-[#034c6a]">
                 <span class="text-[#61d2f7] text-sm">视频同步帧率</span>
-                <el-input-number v-model="systemSettings.videoSyncFps" :min="1" :max="120" :step="1"
+                <el-input-number v-model="systemSettings.frameRate" :min="1" :max="120" :step="1"
                   controls-position="right" class="settings-input-number" />
               </div>
               <div class="flex items-center justify-between py-3 border-b border-[#034c6a] last:border-b-0">
                 <span class="text-[#61d2f7] text-sm">抽帧检测间隔（秒）</span>
-                <el-input-number v-model="systemSettings.frameExtractInterval" :min="1" :max="3600" :step="1"
+                <el-input-number v-model="systemSettings.detectionInterval" :min="1" :max="3600" :step="1"
                   controls-position="right" class="settings-input-number" />
               </div>
             </div>
