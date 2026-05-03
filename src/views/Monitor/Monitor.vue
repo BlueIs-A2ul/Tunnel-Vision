@@ -52,6 +52,33 @@ const cameras = ref([
   { id: 5, name: 'Camera 05', status: 'online', location: '出口段' },
 ])
 
+const colorPalette = [
+  { bg: '#ff4757', text: '#fff' },
+  { bg: '#2ed573', text: '#fff' },
+  { bg: '#1e90ff', text: '#fff' },
+  { bg: '#ffa502', text: '#fff' },
+  { bg: '#a855f7', text: '#fff' },
+]
+let nextColorSlot = 0
+const vehicleColorMap = new Map<string, number>()
+
+function getVehicleColor(id: string) {
+  let idx = vehicleColorMap.get(id)
+  if (idx === undefined) {
+    idx = nextColorSlot % colorPalette.length
+    nextColorSlot++
+    vehicleColorMap.set(id, idx)
+  }
+  return colorPalette[idx]
+}
+
+interface TunnelVehicle {
+  id: string
+  category: string
+  left: number
+}
+const tunnelVehicles = ref<TunnelVehicle[]>([])
+
 const activeCamera = ref(1)
 const demoStarted = ref(false)
 
@@ -316,6 +343,23 @@ function handleWsMessage(data: { type: string; [key: string]: any }) {
         else if (data.category === 'tanker') stats.value.tankerCount++
       }
       updateTypeChart()
+
+      const camNumber = parseInt((data.camera_id || '').replace('cam_', ''), 10) || 0
+      const vid = data.vehicle_id
+      if (camNumber >= 5) {
+        tunnelVehicles.value = tunnelVehicles.value.filter(v => v.id !== vid)
+      } else {
+        const existing = tunnelVehicles.value.find(v => v.id === vid)
+        if (existing) {
+          existing.left = (camNumber - 1) * 25 + 20
+        } else {
+          const entry: TunnelVehicle = { id: vid, category: data.category, left: (camNumber - 1) * 25 }
+          tunnelVehicles.value.push(entry)
+          requestAnimationFrame(() => {
+            entry.left = (camNumber - 1) * 25 + 20
+          })
+        }
+      }
       break
     }
 
@@ -334,6 +378,20 @@ function handleWsMessage(data: { type: string; [key: string]: any }) {
         danger: oldDangerMap[v.vehicleId] || false,
       }))
       updateTypeChart()
+
+      const oldTunnelMap = new Map(tunnelVehicles.value.map(v => [v.id, { left: v.left, category: v.category }]))
+      tunnelVehicles.value = (data.currentVehicles || []).map((v: any) => {
+        const camNumber = parseInt((v.cameraId || '').replace('cam_', ''), 10) || 0
+        const old = oldTunnelMap.get(v.vehicleId)
+        if (old !== undefined) {
+          return { id: v.vehicleId, category: v.category, left: old.left }
+        }
+        const entry: TunnelVehicle = { id: v.vehicleId, category: v.category, left: (camNumber - 1) * 25 }
+        requestAnimationFrame(() => {
+          entry.left = (camNumber - 1) * 25 + 20
+        })
+        return entry
+      })
       break
     }
 
@@ -609,10 +667,11 @@ onUnmounted(() => {
                 <span class="text-[11px] font-normal text-[#61d2f7]">全长: 2.5km</span>
               </div>
               <div class="pt-5 px-3 pb-3">
-                <div class="relative h-20 rounded-lg border border-[#034c6a]"
+                <!-- Camera Row -->
+                <div class="relative h-10 rounded-t-lg border border-b-0 border-[#034c6a]"
                   style="background: linear-gradient(90deg, #072951 0%, #034c6a 50%, #072951 100%);">
                   <div v-for="cam in cameras" :key="cam.id"
-                    class="absolute top-[45%] flex flex-col items-center cursor-pointer"
+                    class="absolute top-[50%] flex flex-col items-center cursor-pointer"
                     :style="{ left: `${(cam.id - 1) * 25}%`, transform: 'translate(-50%, -50%)' }"
                     @click="playCamera(cam.id)">
                     <div
@@ -622,6 +681,17 @@ onUnmounted(() => {
                       </el-icon>
                     </div>
                     <div class="mt-0.5 text-[10px] text-[#61d2f7] font-medium">{{ cam.name }}</div>
+                  </div>
+                </div>
+                <!-- Vehicle Row -->
+                <div class="relative h-14 rounded-b-lg border border-t-0 border-[#034c6a]"
+                  style="background: linear-gradient(90deg, #072951 0%, #034c6a 50%, #072951 100%);">
+                  <div class="absolute top-[50%] left-0 right-0 -translate-y-1/2 border-t-2"
+                    style="border-top-style: dashed; border-top-color: rgba(156,163,175,0.4)"></div>
+                  <div v-for="v in tunnelVehicles" :key="v.id"
+                    class="absolute top-[50%] -translate-x-1/2 -translate-y-1/2 px-2 py-1 rounded text-[11px] font-bold whitespace-nowrap z-10 shadow-[0_0_6px_rgba(0,0,0,0.4)]"
+                    :style="{ left: v.left + '%', transition: 'left 3s linear', backgroundColor: getVehicleColor(v.id).bg, color: getVehicleColor(v.id).text }">
+                    {{ v.id }}
                   </div>
                 </div>
               </div>
