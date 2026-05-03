@@ -3,12 +3,17 @@ import io from 'socket.io-client'
 const SOCKET_URL = 'http://118.24.178.134:8081'
 let socket: SocketIOClient.Socket | null = null
 
+export type WsMessage = {
+  type: 'vehicle_pass' | 'stats' | 'alert'
+  [key: string]: any
+}
+
 /**
  * 连接 Java 后端 WebSocket（告警/演示数据推送）
  * 命名空间：/
  * 事件名：message
  */
-export function connectAlertSocket() {
+export function connectAlertSocket(onMessage?: (data: WsMessage) => void) {
   if (socket?.connected) return socket
 
   socket = io(`${SOCKET_URL}/`, {
@@ -20,8 +25,9 @@ export function connectAlertSocket() {
     console.log('WS 已连接:', socket?.id)
   })
 
-  socket.on('message', (_data: any) => {
-    //console.log('WS message:', data)
+  socket.on('message', (data: WsMessage) => {
+    console.log('WS message:', data)
+    onMessage?.(data)
   })
 
   socket.on('disconnect', (reason: any) => {

@@ -34,12 +34,14 @@ const stats = ref({
   todayWarnings: 3,
 })
 
+const alertedVehicles = new Set<string>()
+
 const trackingList = ref([
-  { id: 'ID_016', category: 'bus', cam: 3, time: '10:23:15' },
-  { id: 'ID_017', category: 'truck', cam: 2, time: '10:22:48' },
-  { id: 'ID_018', category: 'bus', cam: 2, time: '10:21:33' },
-  { id: 'ID_019', category: 'car', cam: 4, time: '10:20:12' },
-  { id: 'ID_020', category: 'truck', cam: 1, time: '10:19:55' },
+  { id: 'ID_016', category: 'bus', cam: 3, time: '10:23:15', danger: false },
+  { id: 'ID_017', category: 'truck', cam: 2, time: '10:22:48', danger: false },
+  { id: 'ID_018', category: 'bus', cam: 2, time: '10:21:33', danger: false },
+  { id: 'ID_019', category: 'car', cam: 4, time: '10:20:12', danger: false },
+  { id: 'ID_020', category: 'truck', cam: 1, time: '10:19:55', danger: false },
 ])
 
 const cameras = ref([
@@ -51,27 +53,62 @@ const cameras = ref([
 ])
 
 const activeCamera = ref(1)
+const demoStarted = ref(false)
 
 const videoRef = ref<HTMLVideoElement | null>(null)
 const isVideoPlaying = ref(false)
-const currentPlayTime = ref(0)
+const sharedTime = ref(0)
+const videoDuration = ref(0)
+
+let rafId: number | null = null
+
+function startTimeSync() {
+  const tick = () => {
+    if (videoRef.value && !videoRef.value.seeking) {
+      sharedTime.value = videoRef.value.currentTime
+    }
+    rafId = requestAnimationFrame(tick)
+  }
+  rafId = requestAnimationFrame(tick)
+}
+
+function stopTimeSync() {
+  if (rafId !== null) {
+    cancelAnimationFrame(rafId)
+    rafId = null
+  }
+}
 
 function getVideoSrc(camId: number): string {
   return `./videos/demo_burned_cam_0${camId}.mp4`
 }
 
 function playCamera(camId: number) {
-  if (camId === activeCamera.value && isVideoPlaying.value) return
-
-  if (isVideoPlaying.value && videoRef.value) {
-    currentPlayTime.value = videoRef.value.currentTime
+  if (camId === activeCamera.value && isVideoPlaying.value) {
+    sharedTime.value = 0
+    if (videoRef.value) {
+      videoRef.value.currentTime = 0
+      videoRef.value.play().catch(() => {})
+    }
+    return
   }
+
+  if (camId === 1 && !demoStarted.value) {
+    demoStarted.value = true
+    startDemo().then(res => console.log('演示开始:', res)).catch(err => console.error('演示开始失败:', err))
+  }
+
+  stopTimeSync()
 
   activeCamera.value = camId
 
   if (!isVideoPlaying.value) {
     isVideoPlaying.value = true
   }
+
+  nextTick(() => {
+    videoRef.value?.load()
+  })
 }
 
 function onCameraSelect(e: Event) {
@@ -79,23 +116,41 @@ function onCameraSelect(e: Event) {
   playCamera(camId)
 }
 
-function onVideoTimeUpdate() {
-  if (videoRef.value) {
-    currentPlayTime.value = videoRef.value.currentTime
+function onVideoCanPlay() {
+  if (!videoRef.value) return
+  const diff = Math.abs((videoRef.value.currentTime || 0) - sharedTime.value)
+  if (diff > 0.1) {
+    videoRef.value.currentTime = sharedTime.value
   }
-}
-
-function onVideoLoaded() {
-  if (videoRef.value) {
-    if (currentPlayTime.value > 0) {
-      videoRef.value.currentTime = currentPlayTime.value
-    }
-    videoRef.value.play()
+  videoRef.value.play().catch(() => {})
+  if (!rafId) {
+    startTimeSync()
   }
 }
 
 function onVideoEnded() {
+  stopTimeSync()
   isVideoPlaying.value = false
+}
+
+function onLoadedMetadata() {
+  if (videoRef.value) {
+    videoDuration.value = videoRef.value.duration
+  }
+}
+
+function onSeek(value: number | number[]) {
+  const time = Array.isArray(value) ? value[0] : value
+  sharedTime.value = time
+  if (videoRef.value) {
+    videoRef.value.currentTime = time
+  }
+}
+
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60)
+  const s = Math.floor(seconds % 60)
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
 let trendChart: echarts.ECharts | null = null
@@ -198,6 +253,7 @@ async function fetchRealtimeData() {
         category: v.category,
         cam: parseInt(v.cameraId, 10) || 0,
         time: new Date(v.timestamp).toLocaleTimeString('zh-CN', { hour12: false }),
+        danger: false,
       }))
       updateTypeChart()
     }
@@ -239,7 +295,63 @@ const getCategoryClass = (category: string) => {
   return classes[category] || 'tag-blue'
 }
 
-let refreshTimer: number | null = null
+function handleWsMessage(data: { type: string; [key: string]: any }) {
+  switch (data.type) {
+    case 'vehicle_pass': {
+      const idx = trackingList.value.findIndex(v => v.id === data.vehicle_id)
+      const entry = {
+        id: data.vehicle_id,
+        category: data.category,
+        cam: parseInt((data.camera_id || '').replace('cam_', ''), 10) || 0,
+        time: new Date(data.exit_time).toLocaleTimeString('zh-CN', { hour12: false }),
+        danger: idx >= 0 ? trackingList.value[idx].danger : false,
+      }
+      if (idx >= 0) {
+        trackingList.value[idx] = entry
+      } else {
+        trackingList.value.unshift(entry)
+        stats.value.totalVehicles++
+        if (data.category === 'bus') stats.value.busCount++
+        else if (data.category === 'truck') stats.value.truckCount++
+        else if (data.category === 'tanker') stats.value.tankerCount++
+      }
+      updateTypeChart()
+      break
+    }
+
+    case 'stats': {
+      const oldDangerMap: Record<string, boolean> = {}
+      trackingList.value.forEach(v => { if (v.danger) oldDangerMap[v.id] = true })
+      stats.value.totalVehicles = data.totalVehicleCount
+      stats.value.busCount = data.busCount
+      stats.value.truckCount = data.truckCount
+      stats.value.tankerCount = data.tankerCount
+      trackingList.value = (data.currentVehicles || []).map((v: any) => ({
+        id: v.vehicleId,
+        category: v.category,
+        cam: parseInt((v.cameraId || '').replace('cam_', ''), 10) || 0,
+        time: new Date(v.timestamp).toLocaleTimeString('zh-CN', { hour12: false }),
+        danger: oldDangerMap[v.vehicleId] || false,
+      }))
+      updateTypeChart()
+      break
+    }
+
+    case 'alert': {
+      if (alertedVehicles.has(data.vehicle_id)) break
+      alertedVehicles.add(data.vehicle_id)
+      const target = trackingList.value.find(v => v.id === data.vehicle_id)
+      if (target) target.danger = true
+      stats.value.todayWarnings++
+      ElNotification.warning({
+        title: '告警',
+        message: data.message,
+        duration: 5000,
+      })
+      break
+    }
+  }
+}
 
 onMounted(async () => {
   await fetchRealtimeData()
@@ -249,19 +361,16 @@ onMounted(async () => {
   initTypeChart()
   updateTypeChart()
 
-  refreshTimer = window.setInterval(fetchRealtimeData, 5000)
-
-  connectAlertSocket()
-  startDemo().then(res => console.log('演示开始:', res)).catch(err => console.error('演示开始失败:', err))
+  connectAlertSocket(handleWsMessage)
 
   window.addEventListener('resize', handleEchartsResize)
 })
 
 onUnmounted(() => {
-  if (refreshTimer) clearInterval(refreshTimer)
-  stopDemo().catch(() => { })
+  if (demoStarted.value) stopDemo().catch(() => { })
   disconnectAlertSocket()
   window.removeEventListener('resize', handleEchartsResize)
+  stopTimeSync()
   videoRef.value?.pause()
   trendChart?.dispose()
   typeChart?.dispose()
@@ -365,6 +474,8 @@ onUnmounted(() => {
                     :class="['px-2 py-0.5 rounded-[10px] text-[10px] font-medium', getCategoryClass(item.category)]">
                     {{ getCategoryLabel(item.category) }}
                   </span>
+                  <span v-if="item.danger"
+                    class="px-2 py-0.5 rounded-[10px] text-[10px] font-medium bg-[rgba(255,78,78,0.25)] text-[#ff4e4e] border border-[#ff4e4e]">危险</span>
                   <span class="text-[11px] text-[#61d2f7]">Cam {{ item.cam }}</span>
                 </div>
                 <div class="text-[11px] text-[#61d2f7]">{{ item.time }}</div>
@@ -411,14 +522,14 @@ onUnmounted(() => {
                     class="aspect-video bg-gradient-to-br from-[#072951] to-[#081832] rounded overflow-hidden relative">
                     <video
                       v-if="isVideoPlaying"
-                      :key="activeCamera"
                       ref="videoRef"
                       :src="getVideoSrc(activeCamera)"
                       class="w-full h-full object-cover"
                       controls
-                      @timeupdate="onVideoTimeUpdate"
-                      @loadedmetadata="onVideoLoaded"
+                      preload="auto"
+                      @canplay="onVideoCanPlay"
                       @ended="onVideoEnded"
+                      @loadedmetadata="onLoadedMetadata"
                     />
                     <div v-else class="absolute inset-0 flex flex-col justify-between p-4">
                       <div class="flex justify-between text-white/70 text-xs">
@@ -435,6 +546,11 @@ onUnmounted(() => {
                         <span>Camera {{ activeCamera }} - 隧道监控</span>
                       </div>
                     </div>
+                  </div>
+                  <div v-if="isVideoPlaying" class="flex items-center gap-2 mt-2">
+                    <span class="text-xs text-white/60 w-10 text-right tabular-nums">{{ formatTime(sharedTime) }}</span>
+                    <el-slider :model-value="sharedTime" :max="videoDuration || 0" size="small" class="flex-1" @input="onSeek" />
+                    <span class="text-xs text-white/60 w-10 tabular-nums">{{ formatTime(videoDuration) }}</span>
                   </div>
                 </div>
               </div>
