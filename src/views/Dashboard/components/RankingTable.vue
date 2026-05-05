@@ -105,7 +105,6 @@ function getTypeClasses(type: string | number): string {
             <div class="flex items-center gap-4 text-xs text-[#61d2f7]">
               <span>摄像头: {{ record.cameraID }}</span>
               <span>时间: {{ record.timeStamp }}</span>
-              <span v-if="record.speed !== undefined">速度: {{ record.speed }}{{ unit || 'km/h' }}</span>
               <span>{{ record.count }} 次抓拍</span>
             </div>
           </div>
