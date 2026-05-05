@@ -115,7 +115,7 @@ function playCamera(camId: number) {
     sharedTime.value = 0
     if (videoRef.value) {
       videoRef.value.currentTime = 0
-      videoRef.value.play().catch(() => {})
+      videoRef.value.play().catch(() => { })
     }
     return
   }
@@ -149,7 +149,7 @@ function onVideoCanPlay() {
   if (diff > 0.1) {
     videoRef.value.currentTime = sharedTime.value
   }
-  videoRef.value.play().catch(() => {})
+  videoRef.value.play().catch(() => { })
   if (!rafId) {
     startTimeSync()
   }
@@ -166,24 +166,8 @@ function onLoadedMetadata() {
   }
 }
 
-function onSeek(value: number | number[]) {
-  const time = Array.isArray(value) ? value[0] : value
-  sharedTime.value = time
-  if (videoRef.value) {
-    videoRef.value.currentTime = time
-  }
-}
-
-function formatTime(seconds: number): string {
-  const m = Math.floor(seconds / 60)
-  const s = Math.floor(seconds % 60)
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-}
-
-let trendChart: echarts.ECharts | null = null
 let typeChart: echarts.ECharts | null = null
 const handleEchartsResize = () => {
-  trendChart?.resize()
   typeChart?.resize()
 }
 
@@ -191,46 +175,6 @@ const darkTooltip: echarts.EChartsOption['tooltip'] = {
   backgroundColor: 'rgba(3, 8, 41, 0.9)',
   borderColor: '#034c6a',
   textStyle: { color: '#ffffff' },
-}
-
-const darkAxis = {
-  axisLine: { lineStyle: { color: '#034c6a' } },
-  axisLabel: { color: '#ffffff' },
-  splitLine: { lineStyle: { color: '#034c6a' } },
-}
-
-const initTrendChart = () => {
-  const chartDom = document.getElementById('trendChart')
-  if (!chartDom) return
-
-  trendChart = echarts.init(chartDom)
-  const option: echarts.EChartsOption = {
-    tooltip: { ...darkTooltip, trigger: 'axis' },
-    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-    xAxis: {
-      type: 'category',
-      data: ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'],
-      ...darkAxis,
-    },
-    yAxis: { type: 'value', ...darkAxis },
-    series: [
-      {
-        name: '车辆数',
-        type: 'line',
-        smooth: true,
-        data: [12, 28, 45, 38, 52, 48, 65, 42, 25],
-        lineStyle: { color: '#4b8df8', width: 2 },
-        areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(75, 141, 248, 0.5)' },
-            { offset: 1, color: 'rgba(75, 141, 248, 0.1)' },
-          ]),
-        },
-        itemStyle: { color: '#4b8df8' },
-      },
-    ],
-  }
-  trendChart.setOption(option)
 }
 
 const initTypeChart = () => {
@@ -322,7 +266,7 @@ const getCategoryClass = (category: string) => {
   return classes[category] || 'tag-blue'
 }
 
-function handleWsMessage(data: { type: string; [key: string]: any }) {
+function handleWsMessage(data: { type: string;[key: string]: any }) {
   switch (data.type) {
     case 'vehicle_pass': {
       const idx = trackingList.value.findIndex(v => v.id === data.vehicle_id)
@@ -415,7 +359,6 @@ onMounted(async () => {
   await fetchRealtimeData()
 
   await nextTick()
-  initTrendChart()
   initTypeChart()
   updateTypeChart()
 
@@ -430,9 +373,6 @@ onUnmounted(() => {
   window.removeEventListener('resize', handleEchartsResize)
   stopTimeSync()
   videoRef.value?.pause()
-  trendChart?.dispose()
-  typeChart?.dispose()
-  trendChart = null
   typeChart = null
 })
 </script>
@@ -442,7 +382,7 @@ onUnmounted(() => {
     <div class="w-[98%] mx-auto py-4">
       <div class="mb-5">
         <div
-          class="inline-flex items-center bg-[#034c6a] rounded-[18px] px-[30px] py-2 text-white font-bold text-lg gap-2">
+          class="inline-flex items-center bg-[#034c6a] rounded-[18px] px-7.5 py-2 text-white font-bold text-lg gap-2">
           <el-icon :size="20" color="#4b8df8">
             <VideoCamera />
           </el-icon>
@@ -459,7 +399,7 @@ onUnmounted(() => {
             <span>RTSP 视频流地址</span>
           </div>
           <div class="flex gap-2 flex-1 ml-4">
-            <input v-model="rtspUrl" placeholder="请输入 RTSP 流地址，如 rtsp://192.168.1.100:554/stream"
+            <input v-model="rtspUrl" placeholder="若留空，将使用本地测试视频"
               class="flex-1 py-2 px-3 rounded-md border border-[#034c6a] bg-[#081832] text-white text-[13px] outline-none focus:border-[#4b8df8] placeholder:text-white/40" />
             <button
               class="px-5 py-2 rounded-md text-sm font-medium cursor-pointer border-none text-white whitespace-nowrap transition-opacity duration-200 hover:opacity-90"
@@ -524,7 +464,7 @@ onUnmounted(() => {
               class="absolute -top-3.75 left-[20%] bg-[#034c6a] rounded-[18px] h-8.75 w-3/5 leading-8.75 text-center text-sm font-bold text-white z-10 flex items-center justify-center gap-2 px-3 box-border">
               实时跟踪列表
             </div>
-            <div class="pt-5 px-3 pb-3 max-h-[480px] overflow-y-auto">
+            <div class="pt-5 px-3 pb-3 max-h-120 overflow-y-auto">
               <div v-for="item in trackingList" :key="item.id" class="py-2 border-b border-[#034c6a] last:border-b-0">
                 <div class="text-[13px] font-semibold text-white mb-0.5">{{ item.id }}</div>
                 <div class="flex gap-1.5 items-center mb-0.5">
@@ -538,18 +478,6 @@ onUnmounted(() => {
                 </div>
                 <div class="text-[11px] text-[#61d2f7]">{{ item.time }}</div>
               </div>
-            </div>
-          </div>
-
-          <div class="relative border border-[#034c6a] rounded-lg mt-6 mb-4
-            shadow-[-10px_0_15px_#034c6a_inset,0_-10px_15px_#034c6a_inset,10px_0_15px_#034c6a_inset,0_10px_15px_#034c6a_inset]
-            box-border">
-            <div
-              class="absolute -top-3.75 left-[20%] bg-[#034c6a] rounded-[18px] h-8.75 w-3/5 leading-8.75 text-center text-sm font-bold text-white z-10 flex items-center justify-center gap-2 px-3 box-border">
-              今日流量趋势
-            </div>
-            <div class="pt-5 px-3 pb-3">
-              <div id="trendChart" class="h-40"></div>
             </div>
           </div>
         </div>
@@ -577,18 +505,10 @@ onUnmounted(() => {
                 </div>
                 <div class="pt-5 px-3 pb-3">
                   <div
-                    class="aspect-video bg-gradient-to-br from-[#072951] to-[#081832] rounded overflow-hidden relative">
-                    <video
-                      v-if="isVideoPlaying"
-                      ref="videoRef"
-                      :src="getVideoSrc(activeCamera)"
-                      class="w-full h-full object-cover"
-                      controls
-                      preload="auto"
-                      @canplay="onVideoCanPlay"
-                      @ended="onVideoEnded"
-                      @loadedmetadata="onLoadedMetadata"
-                    />
+                    class="aspect-video bg-linear-to-br from-[#072951] to-[#081832] rounded overflow-hidden relative">
+                    <video v-if="isVideoPlaying" ref="videoRef" :src="getVideoSrc(activeCamera)"
+                      class="w-full h-full object-cover" preload="auto" @canplay="onVideoCanPlay" @ended="onVideoEnded"
+                      @loadedmetadata="onLoadedMetadata" />
                     <div v-else class="absolute inset-0 flex flex-col justify-between p-4">
                       <div class="flex justify-between text-white/70 text-xs">
                         <span>{{cameras.find(c => c.id === activeCamera)?.name}}</span>
@@ -605,11 +525,7 @@ onUnmounted(() => {
                       </div>
                     </div>
                   </div>
-                  <div v-if="isVideoPlaying" class="flex items-center gap-2 mt-2">
-                    <span class="text-xs text-white/60 w-10 text-right tabular-nums">{{ formatTime(sharedTime) }}</span>
-                    <el-slider :model-value="sharedTime" :max="videoDuration || 0" size="small" class="flex-1" @input="onSeek" />
-                    <span class="text-xs text-white/60 w-10 tabular-nums">{{ formatTime(videoDuration) }}</span>
-                  </div>
+
                 </div>
               </div>
             </div>
@@ -690,7 +606,7 @@ onUnmounted(() => {
                     style="border-top-style: dashed; border-top-color: rgba(156,163,175,0.4)"></div>
                   <div v-for="v in tunnelVehicles" :key="v.id"
                     class="absolute top-[50%] -translate-x-1/2 -translate-y-1/2 px-2 py-1 rounded text-[11px] font-bold whitespace-nowrap z-10 shadow-[0_0_6px_rgba(0,0,0,0.4)]"
-                    :style="{ left: v.left + '%', transition: 'left 3s linear', backgroundColor: getVehicleColor(v.id).bg, color: getVehicleColor(v.id).text }">
+                    :style="{ left: v.left + '%', transition: 'left 4s linear', backgroundColor: getVehicleColor(v.id).bg, color: getVehicleColor(v.id).text }">
                     {{ v.id }}
                   </div>
                 </div>
