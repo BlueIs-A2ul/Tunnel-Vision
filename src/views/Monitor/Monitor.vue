@@ -3,8 +3,11 @@ import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { VideoCamera } from '@element-plus/icons-vue'
 import { getRealtimeStats } from '@/api/realtime'
-import { startDemo, stopDemo } from '@/api/demo'
 import { connectAlertSocket, disconnectAlertSocket } from '@/utils/socket'
+import { connectDetectionSocket, disconnectDetectionSocket } from '@/utils/detectionSocket'
+import { startDetection, stopDetection } from '@/api/stream'
+import { useDetectionOverlay } from '@/composables/useDetectionOverlay'
+import { playWebRTC, stopStream } from '@/utils/webrtc'
 
 const rtspUrl = ref('')
 const rtspConnected = ref(false)
@@ -80,52 +83,29 @@ interface TunnelVehicle {
 const tunnelVehicles = ref<TunnelVehicle[]>([])
 
 const activeCamera = ref(1)
-const demoStarted = ref(false)
-
+const cameraStreamIdMap = new Map<number, string>()
+const activeStreamId = ref('')
+const isStartingDetection = ref(false)
 const videoRef = ref<HTMLVideoElement | null>(null)
 const isVideoPlaying = ref(false)
-const sharedTime = ref(0)
-const videoDuration = ref(0)
 
-let rafId: number | null = null
-
-function startTimeSync() {
-  const tick = () => {
-    if (videoRef.value && !videoRef.value.seeking) {
-      sharedTime.value = videoRef.value.currentTime
-    }
-    rafId = requestAnimationFrame(tick)
-  }
-  rafId = requestAnimationFrame(tick)
-}
-
-function stopTimeSync() {
-  if (rafId !== null) {
-    cancelAnimationFrame(rafId)
-    rafId = null
-  }
-}
-
-function getVideoSrc(camId: number): string {
-  return `./videos/demo_burned_cam_0${camId}.mp4`
-}
+const detectionCanvasRef = ref<HTMLCanvasElement | null>(null)
+const {
+  init: initDetection,
+  drawFrame,
+  dispose: disposeDetection,
+} = useDetectionOverlay()
 
 function playCamera(camId: number) {
   if (camId === activeCamera.value && isVideoPlaying.value) {
-    sharedTime.value = 0
-    if (videoRef.value) {
-      videoRef.value.currentTime = 0
-      videoRef.value.play().catch(() => { })
-    }
     return
   }
 
-  if (camId === 1 && !demoStarted.value) {
-    demoStarted.value = true
-    startDemo().then(res => console.log('演示开始:', res)).catch(err => console.error('演示开始失败:', err))
+  const oldStreamId = cameraStreamIdMap.get(activeCamera.value)
+  if (oldStreamId) {
+    stopDetection(oldStreamId).catch(() => {})
+    cameraStreamIdMap.delete(activeCamera.value)
   }
-
-  stopTimeSync()
 
   activeCamera.value = camId
 
@@ -133,9 +113,31 @@ function playCamera(camId: number) {
     isVideoPlaying.value = true
   }
 
-  nextTick(() => {
-    videoRef.value?.load()
-  })
+  const cam = cameras.value.find(c => c.id === camId)
+  if (cam) {
+    isStartingDetection.value = true
+    startDetection({
+      name: cam.name,
+      rtsp_url: `rtsp://localhost:8554/cam0${camId}`,
+      position: camId,
+    })
+      .then((res) => {
+        if (res.code === 0 && res.data?.stream_id) {
+          cameraStreamIdMap.set(camId, res.data.stream_id)
+          activeStreamId.value = res.data.stream_id
+        }
+      })
+      .catch((err) => {
+        console.error('启动检测流失败:', err)
+      })
+      .finally(() => {
+        isStartingDetection.value = false
+      })
+  }
+
+  if (videoRef.value) {
+    playWebRTC(`cam0${camId}`, videoRef.value)
+  }
 }
 
 function onCameraSelect(e: Event) {
@@ -144,26 +146,12 @@ function onCameraSelect(e: Event) {
 }
 
 function onVideoCanPlay() {
-  if (!videoRef.value) return
-  const diff = Math.abs((videoRef.value.currentTime || 0) - sharedTime.value)
-  if (diff > 0.1) {
-    videoRef.value.currentTime = sharedTime.value
-  }
-  videoRef.value.play().catch(() => { })
-  if (!rafId) {
-    startTimeSync()
-  }
+  if (!videoRef.value || !detectionCanvasRef.value) return
+  initDetection(videoRef.value, detectionCanvasRef.value)
 }
 
 function onVideoEnded() {
-  stopTimeSync()
   isVideoPlaying.value = false
-}
-
-function onLoadedMetadata() {
-  if (videoRef.value) {
-    videoDuration.value = videoRef.value.duration
-  }
 }
 
 let typeChart: echarts.ECharts | null = null
@@ -363,15 +351,27 @@ onMounted(async () => {
   updateTypeChart()
 
   connectAlertSocket(handleWsMessage)
+  connectDetectionSocket(
+    (data) => {
+      if (!activeStreamId.value || data.stream_id === activeStreamId.value) {
+        drawFrame(data.vehicles)
+      }
+    },
+  )
 
   window.addEventListener('resize', handleEchartsResize)
 })
 
 onUnmounted(() => {
-  if (demoStarted.value) stopDemo().catch(() => { })
   disconnectAlertSocket()
+  disconnectDetectionSocket()
+  stopStream()
+  for (const sid of cameraStreamIdMap.values()) {
+    stopDetection(sid).catch(() => {})
+  }
+  cameraStreamIdMap.clear()
+  disposeDetection()
   window.removeEventListener('resize', handleEchartsResize)
-  stopTimeSync()
   videoRef.value?.pause()
   typeChart = null
 })
@@ -506,9 +506,14 @@ onUnmounted(() => {
                 <div class="pt-5 px-3 pb-3">
                   <div
                     class="aspect-video bg-linear-to-br from-[#072951] to-[#081832] rounded overflow-hidden relative">
-                    <video v-if="isVideoPlaying" ref="videoRef" :src="getVideoSrc(activeCamera)"
-                      class="w-full h-full object-cover" preload="auto" @canplay="onVideoCanPlay" @ended="onVideoEnded"
-                      @loadedmetadata="onLoadedMetadata" />
+                    <video v-if="isVideoPlaying" ref="videoRef"
+                      class="w-full h-full object-contain" autoplay muted playsinline
+                      @canplay="onVideoCanPlay" @ended="onVideoEnded" />
+                    <canvas
+                      v-if="isVideoPlaying"
+                      ref="detectionCanvasRef"
+                      class="absolute inset-0 w-full h-full pointer-events-none"
+                    />
                     <div v-else class="absolute inset-0 flex flex-col justify-between p-4">
                       <div class="flex justify-between text-white/70 text-xs">
                         <span>{{cameras.find(c => c.id === activeCamera)?.name}}</span>
