@@ -15,11 +15,13 @@
     "axios": "^1.15.1",
     "echarts": "^6.0.0",
     "element-plus": "^2.13.7",
+    "hls.js": "^1.6.16",
     "pinia": "^3.0.4",
     "pinia-plugin-persistedstate": "^4.7.1",
     "socket.io-client": "^2.5.0",
     "vue": "^3.4.21",
-    "vue-router": "^5.0.4"
+    "vue-router": "^5.0.4",
+    "whip-whep-client": "^1.3.0"
   },
   "devDependencies": {
     "@iconify/vue": "^5.0.0",
