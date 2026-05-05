@@ -10,7 +10,7 @@ const loading = ref(false)
 
 const statusLabels: Record<string, string> = {
   moving: '行驶中',
-  exited: '已离开',
+  exited: '正常驶离',
   abnormal: '异常',
 }
 
