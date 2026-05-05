@@ -10,6 +10,15 @@ const initChart = () => {
   if (!chartRef.value) return
 
   chartInstance = echarts.init(chartRef.value)
+
+  const yAxisBase = {
+    type: 'value' as const,
+    min: 0,
+    axisLine: { lineStyle: { color: '#034c6a' } },
+    axisLabel: { color: '#ffffff' },
+    splitLine: { lineStyle: { color: '#034c6a' } },
+  }
+
   const option: echarts.EChartsOption = {
     tooltip: {
       trigger: 'axis',
@@ -26,21 +35,20 @@ const initChart = () => {
     },
     xAxis: {
       type: 'category',
-      data: ['超速', '疲劳驾驶', '偏离路线', '异常停车', '设备故障'],
+      data: ['超速', '异常停留', '设备故障'],
       axisLine: { lineStyle: { color: '#034c6a' } },
       axisLabel: { color: '#ffffff', rotate: 15 },
     },
     yAxis: {
-      type: 'value',
-      axisLine: { lineStyle: { color: '#034c6a' } },
-      axisLabel: { color: '#ffffff' },
-      splitLine: { lineStyle: { color: '#034c6a' } },
-    },
+      ...yAxisBase,
+      max: (value: { max: number }) => (value.max < 5 ? 5 : value.max),
+      interval: 1,
+    } as any,
     series: [
       {
         name: '报警次数',
         type: 'bar',
-        data: [120, 85, 45, 30, 18],
+        data: [0, 1, 0],
         itemStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: '#ff4e4e' },
