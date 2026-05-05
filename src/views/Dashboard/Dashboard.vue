@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import StatsOverview from '@/views/Dashboard/components/StatsOverview.vue'
 import TypeChart from '@/views/Dashboard/components/TypeChart.vue'
 import StatusChart from '@/views/Dashboard/components/StatusChart.vue'
@@ -8,6 +8,7 @@ import AlarmChart from '@/views/Dashboard/components/AlarmChart.vue'
 import RankingTable from '@/views/Dashboard/components/RankingTable.vue'
 import MapPlaceholder from '@/views/Dashboard/components/MapPlaceholder.vue'
 import { Icon } from '@iconify/vue'
+import { getAllVehicles } from '@/api/vehicles'
 
 const stats = ref({
   totalVehicles: 67,
@@ -29,13 +30,39 @@ interface VehicleRecord {
   speed?: number
 }
 
-const vehicleRecords = ref<VehicleRecord[]>([
-  { ID: 'ID_001', type: '小车', timeStamp: '2024-01-15 10:30', cameraID: 'C01', count: 3, photos: [], isDangerous: false },
-  { ID: 'ID_002', type: '卡车', timeStamp: '2024-01-15 10:25', cameraID: 'C01', count: 2, photos: [], isDangerous: false },
-  { ID: 'ID_003', type: '巴士', timeStamp: '2024-01-15 10:20', cameraID: 'C02', count: 5, photos: [], isDangerous: true, speed: 85 },
-  { ID: 'ID_004', type: '小车', timeStamp: '2024-01-15 10:15', cameraID: 'C02', count: 2, photos: [], isDangerous: false },
-  { ID: 'ID_005', type: '卡车', timeStamp: '2024-01-15 10:10', cameraID: 'C03', count: 4, photos: [], isDangerous: false },
-])
+const vehicleRecords = ref<VehicleRecord[]>([])
+
+function formatTime(ts: Record<string, unknown>): string {
+  if (!ts || !ts.timestamp) return '--'
+  const d = new Date(ts.timestamp as number)
+  if (isNaN(d.getTime())) return '--'
+  return d.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  })
+}
+
+onMounted(async () => {
+  try {
+    const res = await getAllVehicles()
+    vehicleRecords.value = res.map(v => ({
+      ID: v.vehicleUid || String(v.id),
+      type: v.type || '未知',
+      timeStamp: formatTime(v.firstSeenTime as Record<string, unknown>),
+      cameraID: '--',
+      count: 0,
+      photos: [],
+      isDangerous: v.status === 'abnormal',
+    }))
+  } catch (err) {
+    console.error('获取车辆通行记录失败:', err)
+  }
+})
 </script>
 
 <template>
