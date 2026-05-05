@@ -14,7 +14,7 @@ const initChart = () => {
   // 横坐标：全天24小时，每3小时一个区间，共8个区间
   const xAxisData = ['0-3时', '3-6时', '6-9时', '9-12时', '12-15时', '15-18时', '18-21时', '21-24时']
   // 模拟日流量数据，每3小时一个数据点
-  const flowData = [245, 128, 389, 456, 267, 389, 356, 278]
+  const flowData = [24, 12, 38, 45, 26, 38, 35, 27]
 
   const option: echarts.EChartsOption = {
     tooltip: {

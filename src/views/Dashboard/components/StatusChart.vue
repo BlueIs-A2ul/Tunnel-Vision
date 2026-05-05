@@ -42,7 +42,7 @@ const initChart = () => {
       {
         name: '车辆数',
         type: 'bar',
-        data: [125, 89, 156, 203, 78, 142],
+        data: [12, 8, 15, 20, 7, 14],
         itemStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: '#4b8df8' },
