@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { VideoCamera } from '@element-plus/icons-vue'
-import { getRealtimeStats } from '@/api/realtime'
+import { startMonitoring } from '@/api/realtime'
 import { connectAlertSocket, disconnectAlertSocket } from '@/utils/socket'
 import { connectDetectionSocket, disconnectDetectionSocket } from '@/utils/detectionSocket'
 import { startDetection, stopDetection } from '@/api/stream'
@@ -198,27 +198,7 @@ const initTypeChart = () => {
 }
 
 async function fetchRealtimeData() {
-  try {
-    const res = await getRealtimeStats()
-    console.log('实时车辆统计数据:', res)
-    if (res.code === 1 && res.data) {
-      const d = res.data
-      stats.value.totalVehicles = d.totalVehicleCount
-      stats.value.busCount = d.busCount
-      stats.value.truckCount = d.truckCount
-      stats.value.tankerCount = d.tankerCount
-      trackingList.value = d.currentVehicles.map(v => ({
-        id: v.vehicleId,
-        category: v.category,
-        cam: parseInt(v.cameraId, 10) || 0,
-        time: new Date(v.timestamp).toLocaleTimeString('zh-CN', { hour12: false }),
-        danger: false,
-      }))
-      updateTypeChart()
-    }
-  } catch (err) {
-    console.error('获取实时数据失败:', err)
-  }
+  // data driven by WebSocket
 }
 
 function updateTypeChart() {
@@ -350,6 +330,7 @@ onMounted(async () => {
   initTypeChart()
   updateTypeChart()
 
+  await startMonitoring()
   connectAlertSocket(handleWsMessage)
   connectDetectionSocket(
     (data) => {
