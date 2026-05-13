@@ -1,6 +1,7 @@
 import { WHEPClient } from 'whip-whep-client'
 import Hls from 'hls.js'
 
+// TODO 使用env变量
 const MEDIA_MTX_HOST = 'http://localhost'
 
 let whepClient: WHEPClient | null = null
@@ -47,11 +48,11 @@ function playHLS(streamName: string, video: HTMLVideoElement) {
 
   if (Hls.isSupported()) {
     hls = new Hls({ lowLatencyMode: true })
-    hls.loadSource(url)
     hls.attachMedia(video)
     hls.on(Hls.Events.MANIFEST_PARSED, () => {
       video.play().catch(() => {})
     })
+    hls.loadSource(url)
     return
   }
 
@@ -65,6 +66,27 @@ function stopHLS() {
   if (hls) {
     hls.destroy()
     hls = null
+  }
+}
+
+export function playDirectHLS(url: string, video: HTMLVideoElement) {
+  stopStream()
+  video.src = ''
+  video.srcObject = null
+
+  if (Hls.isSupported()) {
+    hls = new Hls({ lowLatencyMode: true })
+    hls.attachMedia(video)
+    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      video.play().catch(() => {})
+    })
+    hls.loadSource(url)
+    return
+  }
+
+  if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    video.src = url
+    video.play().catch(() => {})
   }
 }
 
