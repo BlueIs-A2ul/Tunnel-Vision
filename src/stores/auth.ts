@@ -29,7 +29,7 @@ export const useAuthStore = defineStore(
     async function login(params: LoginParams) {
       const response = await authApi.login(params)
 
-      if (response.code === 1 && response.data) {
+      if (response.code === 200 && response.data) {
         token.value = response.data.token
         localStorage.setItem('token', response.data.token)
         user.value = { username: response.data.username }
@@ -55,7 +55,7 @@ export const useAuthStore = defineStore(
     async function register(params: RegisterParams) {
       const response = await authApi.register(params)
 
-      if (response.code === 1 && response.data) {
+      if (response.code === 200 && response.data) {
         if (response.data.token) {
           token.value = response.data.token
           localStorage.setItem('token', response.data.token)

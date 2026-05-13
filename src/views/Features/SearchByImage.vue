@@ -49,7 +49,7 @@ async function handleSearch() {
 
   try {
     const res = await searchByImage(selectedFile.value)
-    if (res.code !== 1) throw new Error(res.msg || '查询失败')
+    if (res.code !== 200) throw new Error(res.msg || '查询失败')
     searchResults.value = res.data
   } catch (error: any) {
     ElMessage.error(error.message || '查询失败')

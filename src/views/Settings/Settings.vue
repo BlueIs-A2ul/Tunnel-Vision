@@ -34,7 +34,7 @@ const systemSettings = ref<SystemSettings>({
 async function fetchSystemSettings() {
   try {
     const res = await getSystemConfig()
-    if (res.code === 1 && res.data) {
+    if (res.code === 200 && res.data) {
       systemSettings.value = res.data
     }
   } catch {
@@ -46,7 +46,7 @@ async function handleSaveSettings() {
   settingsLoading.value = true
   try {
     const res = await saveSystemConfig(systemSettings.value)
-    if (res.code !== 1) throw new Error(res.msg || '保存失败')
+    if (res.code !== 200) throw new Error(res.msg || '保存失败')
     ElMessage.success('系统参数已保存')
   } catch (error: any) {
     ElMessage.error(error.message || '保存失败')

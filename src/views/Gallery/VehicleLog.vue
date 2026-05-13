@@ -58,7 +58,7 @@ async function fetchData() {
   loading.value = true
   try {
     const res = await getVehiclesWithImages(selectedDate.value)
-    if (res.code === 1 && res.data) {
+    if (res.code === 200 && res.data) {
       vehicleRecords.value = res.data
     } else {
       ElMessage.warning(res.msg || '获取数据失败')
@@ -167,8 +167,8 @@ onMounted(fetchData)
                 <div
                   class="w-full h-full bg-[#034c6a] rounded-md overflow-hidden border border-[#034c6a] flex items-center justify-center"
                   style="box-shadow: inset -3px 0 8px #61d2f7, inset 3px 0 8px #61d2f7">
-                  <img :src="img.imageUrl" :alt="`图片 ${i + 1}`"
-                    class="w-full h-full object-cover" @error="handleImgError" />
+                  <img :src="img.imageUrl" :alt="`图片 ${i + 1}`" class="w-full h-full object-cover"
+                    @error="handleImgError" />
                 </div>
               </div>
             </template>
