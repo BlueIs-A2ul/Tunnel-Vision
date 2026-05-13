@@ -8,7 +8,7 @@ import AlarmChart from '@/views/Dashboard/components/AlarmChart.vue'
 import RankingTable from '@/views/Dashboard/components/RankingTable.vue'
 import MapPlaceholder from '@/views/Dashboard/components/MapPlaceholder.vue'
 import { Icon } from '@iconify/vue'
-import { getAllVehicles } from '@/api/vehicles'
+import { getRealtimeVehicleCards } from '@/api/vehicles'
 
 const stats = ref({
   totalVehicles: 67,
@@ -25,40 +25,29 @@ interface VehicleRecord {
   timeStamp: string
   cameraID: string
   count: number
-  photos: string[]
+  photos?: string[]
   isDangerous?: boolean
   speed?: number
 }
 
 const vehicleRecords = ref<VehicleRecord[]>([])
 
-function formatTime(ts: Record<string, unknown>): string {
-  if (!ts || !ts.timestamp) return '--'
-  const d = new Date(ts.timestamp as number)
-  if (isNaN(d.getTime())) return '--'
-  return d.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  })
-}
-
 onMounted(async () => {
   try {
-    const res = await getAllVehicles()
-    vehicleRecords.value = res.map(v => ({
-      ID: v.vehicleUid || String(v.id),
-      type: v.type || '未知',
-      timeStamp: formatTime(v.firstSeenTime as Record<string, unknown>),
-      cameraID: '--',
-      count: 0,
-      photos: [],
-      isDangerous: v.status === 'abnormal',
-    }))
+    const res = await getRealtimeVehicleCards()
+    console.log('获取车辆通行记录成功:', res)
+    if (res.code === 200) {
+      vehicleRecords.value = res.data.map((item) => ({
+        ID: item.vehicleUid,
+        type: item.vehicleType,
+        timeStamp: item.captureTime,
+        cameraID: item.cameraId,
+        count: item.captureCount,
+        photos: [],
+        isDangerous: item.status === '异常',
+        speed: undefined,
+      }))
+    }
   } catch (err) {
     console.error('获取车辆通行记录失败:', err)
   }
@@ -96,7 +85,7 @@ onMounted(async () => {
         </div>
       </div>
 
-      <div class="w-full mb-[25px] flex justify-between">
+      <div class="w-full mb-6.25 flex justify-between">
         <RankingTable title="车辆通行记录" :data="vehicleRecords" />
       </div>
     </div>

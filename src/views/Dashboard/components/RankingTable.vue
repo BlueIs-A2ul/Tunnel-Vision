@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { Icon } from '@iconify/vue'
 
 const props = defineProps<{
   title: string
@@ -9,7 +10,7 @@ const props = defineProps<{
     timeStamp: string
     cameraID: string
     count: number
-    photos: string[]
+    photos?: string[]
     isDangerous?: boolean
     speed?: number
   }[]
@@ -84,6 +85,10 @@ function getTypeClasses(type: string | number): string {
     </div>
 
     <div class="p-3 space-y-3">
+      <div v-if="paginatedData.length === 0" class="flex flex-col items-center justify-center py-12 text-[#61d2f7]">
+        <Icon icon="uiw:message--exclude" :size="48" class="mb-3 opacity-50" />
+        <span class="text-sm">当前暂无数据</span>
+      </div>
       <div v-for="(record, index) in paginatedData" :key="record.ID"
         class="flex items-center justify-between px-4 py-3 rounded-lg border border-[#034c6a]"
         :class="index % 2 === 0 ? 'bg-[#072951]' : 'bg-[#072951]/50'"
@@ -110,10 +115,10 @@ function getTypeClasses(type: string | number): string {
           </div>
         </div>
         <div class="flex items-center gap-1.5">
-          <div v-for="(_, photoIndex) in Math.min(record.photos.length, 4)" :key="photoIndex"
+          <div v-for="(_, photoIndex) in Math.min(record.photos?.length ?? 0, 4)" :key="photoIndex"
             class="w-14 h-14 bg-[#034c6a] rounded-md border border-[#034c6a] overflow-hidden"
             style="box-shadow: inset -3px 0 8px #61d2f7, inset 3px 0 8px #61d2f7;">
-            <img v-if="record.photos[photoIndex]" :src="record.photos[photoIndex]" alt="抓拍照片"
+            <img v-if="record.photos?.[photoIndex]" :src="record.photos[photoIndex]" alt="抓拍照片"
               class="w-full h-full object-cover" />
           </div>
         </div>
