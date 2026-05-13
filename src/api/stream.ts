@@ -1,6 +1,5 @@
 /**
  * 检测流管理 API（调用深度学习端 Python 服务）
- * 地址：http://76d09927.r30.cpolar.top:5000
  */
 
 import axios from 'axios'
@@ -12,20 +11,23 @@ import type {
 } from '@/types/detection'
 
 const pythonApi = axios.create({
-  baseURL: 'http://76d09927.r30.cpolar.top:5000',
+  // TODO 使用env变量
+  baseURL: import.meta.env.VITE_API_PYTHON_BASE_URL,
   timeout: 10000,
 })
 
 pythonApi.interceptors.response.use(
-  (response) => response.data,
-  (error) => Promise.reject(error),
+  response => response.data,
+  error => Promise.reject(error),
 )
 
 /**
  * 开启检测流推理
  * POST /api/stream
  */
-export function startDetection(params: StartStreamRequest): Promise<StartStreamResponse> {
+export function startDetection(
+  params: StartStreamRequest,
+): Promise<StartStreamResponse> {
   return pythonApi.post('/api/stream', params)
 }
 

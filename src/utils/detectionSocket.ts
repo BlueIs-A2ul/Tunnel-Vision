@@ -1,7 +1,11 @@
 import io from 'socket.io-client'
-import type { DetectionResultData, ResultPayload, StatsPayload } from '@/types/detection'
+import type {
+  DetectionResultData,
+  ResultPayload,
+  StatsPayload,
+} from '@/types/detection'
 
-const SOCKET_URL = 'http://76d09927.r30.cpolar.top:5000'
+const SOCKET_URL = import.meta.env.VITE_API_PYTHON_BASE_URL
 const NAMESPACE = '/ws/events'
 
 let socket: SocketIOClient.Socket | null = null

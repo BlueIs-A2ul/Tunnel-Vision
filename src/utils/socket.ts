@@ -1,5 +1,6 @@
 import io from 'socket.io-client'
 
+// TODO 使用env变量
 const SOCKET_URL = 'http://118.24.178.134:8081'
 let socket: SocketIOClient.Socket | null = null
 
