@@ -5,28 +5,17 @@ import { VideoCamera } from '@element-plus/icons-vue'
 import { startMonitoring } from '@/api/realtime'
 import { connectAlertSocket, disconnectAlertSocket } from '@/utils/socket'
 import { connectDetectionSocket, disconnectDetectionSocket } from '@/utils/detectionSocket'
-import { startDetection, stopDetection } from '@/api/stream'
 import { useDetectionOverlay } from '@/composables/useDetectionOverlay'
-import { playWebRTC, stopStream } from '@/utils/webrtc'
+import { playDirectHLS, stopStream } from '@/utils/webrtc'
 
-const rtspUrl = ref('')
-const rtspConnected = ref(false)
-const showRtspInput = ref(true)
-
-function connectRtsp() {
-  if (!rtspUrl.value.trim()) {
-    ElMessage.warning('请输入 RTSP 流地址')
-    return
-  }
-  rtspConnected.value = true
-  showRtspInput.value = false
-}
-
-function disconnectRtsp() {
-  rtspConnected.value = false
-  showRtspInput.value = true
-  rtspUrl.value = ''
-}
+// TODO 使用输入框让用户配置
+const cameras = ref([
+  { id: 1, name: 'Camera 01', status: 'online', location: '入口段', hlsUrl: 'http://b4951fd.r21.cpolar.top/cam01/index.m3u8' },
+  { id: 2, name: 'Camera 02', status: 'online', location: '中段A', hlsUrl: 'http://b4951fd.r21.cpolar.top/cam02/index.m3u8' },
+  { id: 3, name: 'Camera 03', status: 'online', location: '中段B', hlsUrl: 'http://b4951fd.r21.cpolar.top/cam03/index.m3u8' },
+  { id: 4, name: 'Camera 04', status: 'online', location: '中段C', hlsUrl: 'http://b4951fd.r21.cpolar.top/cam04/index.m3u8' },
+  { id: 5, name: 'Camera 05', status: 'online', location: '出口段', hlsUrl: 'http://b4951fd.r21.cpolar.top/cam05/index.m3u8' },
+])
 
 const stats = ref({
   totalVehicles: 128,
@@ -45,14 +34,6 @@ const trackingList = ref([
   { id: 'ID_018', category: 'bus', cam: 2, time: '10:21:33', danger: false },
   { id: 'ID_019', category: 'car', cam: 4, time: '10:20:12', danger: false },
   { id: 'ID_020', category: 'truck', cam: 1, time: '10:19:55', danger: false },
-])
-
-const cameras = ref([
-  { id: 1, name: 'Camera 01', status: 'online', location: '入口段' },
-  { id: 2, name: 'Camera 02', status: 'online', location: '中段A' },
-  { id: 3, name: 'Camera 03', status: 'online', location: '中段B' },
-  { id: 4, name: 'Camera 04', status: 'online', location: '中段C' },
-  { id: 5, name: 'Camera 05', status: 'online', location: '出口段' },
 ])
 
 const colorPalette = [
@@ -83,9 +64,6 @@ interface TunnelVehicle {
 const tunnelVehicles = ref<TunnelVehicle[]>([])
 
 const activeCamera = ref(1)
-const cameraStreamIdMap = new Map<number, string>()
-const activeStreamId = ref('')
-const isStartingDetection = ref(false)
 const videoRef = ref<HTMLVideoElement | null>(null)
 const isVideoPlaying = ref(false)
 
@@ -101,12 +79,6 @@ function playCamera(camId: number) {
     return
   }
 
-  const oldStreamId = cameraStreamIdMap.get(activeCamera.value)
-  if (oldStreamId) {
-    stopDetection(oldStreamId).catch(() => {})
-    cameraStreamIdMap.delete(activeCamera.value)
-  }
-
   activeCamera.value = camId
 
   if (!isVideoPlaying.value) {
@@ -114,29 +86,8 @@ function playCamera(camId: number) {
   }
 
   const cam = cameras.value.find(c => c.id === camId)
-  if (cam) {
-    isStartingDetection.value = true
-    startDetection({
-      name: cam.name,
-      rtsp_url: `rtsp://localhost:8554/cam0${camId}`,
-      position: camId,
-    })
-      .then((res) => {
-        if (res.code === 0 && res.data?.stream_id) {
-          cameraStreamIdMap.set(camId, res.data.stream_id)
-          activeStreamId.value = res.data.stream_id
-        }
-      })
-      .catch((err) => {
-        console.error('启动检测流失败:', err)
-      })
-      .finally(() => {
-        isStartingDetection.value = false
-      })
-  }
-
-  if (videoRef.value) {
-    playWebRTC(`cam0${camId}`, videoRef.value)
+  if (cam && videoRef.value) {
+    playDirectHLS(cam.hlsUrl, videoRef.value)
   }
 }
 
@@ -334,9 +285,7 @@ onMounted(async () => {
   connectAlertSocket(handleWsMessage)
   connectDetectionSocket(
     (data) => {
-      if (!activeStreamId.value || data.stream_id === activeStreamId.value) {
-        drawFrame(data.vehicles)
-      }
+      drawFrame(data.vehicles)
     },
   )
 
@@ -347,10 +296,6 @@ onUnmounted(() => {
   disconnectAlertSocket()
   disconnectDetectionSocket()
   stopStream()
-  for (const sid of cameraStreamIdMap.values()) {
-    stopDetection(sid).catch(() => {})
-  }
-  cameraStreamIdMap.clear()
   disposeDetection()
   window.removeEventListener('resize', handleEchartsResize)
   videoRef.value?.pause()
@@ -368,41 +313,6 @@ onUnmounted(() => {
             <VideoCamera />
           </el-icon>
           实时监控
-        </div>
-      </div>
-
-      <!-- RTSP Input -->
-      <div v-if="showRtspInput && !rtspConnected" class="mb-4">
-        <div
-          class="flex items-center justify-between py-3 px-5 bg-[#072951] border border-dashed border-[#034c6a] rounded-lg">
-          <div class="flex items-center gap-2 text-[#e8f7fe] text-sm whitespace-nowrap">
-
-            <span>RTSP 视频流地址</span>
-          </div>
-          <div class="flex gap-2 flex-1 ml-4">
-            <input v-model="rtspUrl" placeholder="若留空，将使用本地测试视频"
-              class="flex-1 py-2 px-3 rounded-md border border-[#034c6a] bg-[#081832] text-white text-[13px] outline-none focus:border-[#4b8df8] placeholder:text-white/40" />
-            <button
-              class="px-5 py-2 rounded-md text-sm font-medium cursor-pointer border-none text-white whitespace-nowrap transition-opacity duration-200 hover:opacity-90"
-              style="background: linear-gradient(to bottom, #4b8df8, #25f3e6)" @click="connectRtsp">
-              连接
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div v-if="rtspConnected" class="mb-4">
-        <div
-          class="flex items-center justify-between py-3 px-5 bg-[#072951] border border-solid border-[#034c6a] rounded-lg">
-          <div class="flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-[#25f3e6] animate-pulse"></span>
-            <span class="text-[#61d2f7] text-[13px]">{{ rtspUrl }}</span>
-          </div>
-          <button
-            class="py-1.5 px-4 rounded-md text-[13px] cursor-pointer border border-[#ff4e4e] bg-transparent text-[#ff4e4e] transition-all duration-200 hover:bg-[rgba(255,78,78,0.15)]"
-            @click="disconnectRtsp">
-            断开连接
-          </button>
         </div>
       </div>
 
@@ -487,14 +397,10 @@ onUnmounted(() => {
                 <div class="pt-5 px-3 pb-3">
                   <div
                     class="aspect-video bg-linear-to-br from-[#072951] to-[#081832] rounded overflow-hidden relative">
-                    <video v-if="isVideoPlaying" ref="videoRef"
-                      class="w-full h-full object-contain" autoplay muted playsinline
-                      @canplay="onVideoCanPlay" @ended="onVideoEnded" />
-                    <canvas
-                      v-if="isVideoPlaying"
-                      ref="detectionCanvasRef"
-                      class="absolute inset-0 w-full h-full pointer-events-none"
-                    />
+                    <video v-if="isVideoPlaying" ref="videoRef" class="w-full h-full object-contain" autoplay muted
+                      playsinline @canplay="onVideoCanPlay" @ended="onVideoEnded" />
+                    <canvas v-if="isVideoPlaying" ref="detectionCanvasRef"
+                      class="absolute inset-0 w-full h-full pointer-events-none" />
                     <div v-else class="absolute inset-0 flex flex-col justify-between p-4">
                       <div class="flex justify-between text-white/70 text-xs">
                         <span>{{cameras.find(c => c.id === activeCamera)?.name}}</span>
