@@ -1,8 +1,7 @@
-import io from 'socket.io-client'
+import { io, Socket } from 'socket.io-client'
 
-// TODO 使用env变量
-const SOCKET_URL = 'http://118.24.178.134:8081'
-let socket: SocketIOClient.Socket | null = null
+const SOCKET_URL = import.meta.env.VITE_API_JAVA_WS_URL
+let socket: Socket | null = null
 
 export type WsMessage = {
   type: 'vehicle_pass' | 'stats' | 'alert'
