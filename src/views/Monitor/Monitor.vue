@@ -1,40 +1,37 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { VideoCamera } from '@element-plus/icons-vue'
 import { startMonitoring } from '@/api/realtime'
+import type { StreamInfo } from '@/types/detection'
+import { healthCheck, startDetection, getDetectionStreams } from '@/api/stream'
 import { connectAlertSocket, disconnectAlertSocket } from '@/utils/socket'
-import { connectDetectionSocket, disconnectDetectionSocket } from '@/utils/detectionSocket'
+import { connectDetectionSocket, disconnectDetectionSocket, isDetectionConnected } from '@/utils/detectionSocket'
 import { useDetectionOverlay } from '@/composables/useDetectionOverlay'
 import { playDirectHLS, stopStream } from '@/utils/webrtc'
+import { rtspToHlsUrl } from '@/utils/hlsMapper'
 
-// TODO 使用输入框让用户配置
+
 const cameras = ref([
-  { id: 1, name: 'Camera 01', status: 'online', location: '入口段', hlsUrl: 'http://b4951fd.r21.cpolar.top/cam01/index.m3u8' },
-  { id: 2, name: 'Camera 02', status: 'online', location: '中段A', hlsUrl: 'http://b4951fd.r21.cpolar.top/cam02/index.m3u8' },
-  { id: 3, name: 'Camera 03', status: 'online', location: '中段B', hlsUrl: 'http://b4951fd.r21.cpolar.top/cam03/index.m3u8' },
-  { id: 4, name: 'Camera 04', status: 'online', location: '中段C', hlsUrl: 'http://b4951fd.r21.cpolar.top/cam04/index.m3u8' },
-  { id: 5, name: 'Camera 05', status: 'online', location: '出口段', hlsUrl: 'http://b4951fd.r21.cpolar.top/cam05/index.m3u8' },
+  { id: 1, name: 'Camera 01', location: '入口段' },
+  { id: 2, name: 'Camera 02', location: '中段A' },
+  { id: 3, name: 'Camera 03', location: '中段B' },
+  { id: 4, name: 'Camera 04', location: '中段C' },
+  { id: 5, name: 'Camera 05', location: '出口段' },
 ])
 
 const stats = ref({
-  totalVehicles: 128,
-  busCount: 45,
-  truckCount: 38,
-  tankerCount: 5,
-  onlineCameras: 5,
-  todayWarnings: 3,
+  totalVehicles: 0,
+  busCount: 0,
+  truckCount: 0,
+  tankerCount: 0,
+  onlineCameras: 0,
+  todayWarnings: 0,
 })
 
 const alertedVehicles = new Set<string>()
 
-const trackingList = ref([
-  { id: 'ID_016', category: 'bus', cam: 3, time: '10:23:15', danger: false },
-  { id: 'ID_017', category: 'truck', cam: 2, time: '10:22:48', danger: false },
-  { id: 'ID_018', category: 'bus', cam: 2, time: '10:21:33', danger: false },
-  { id: 'ID_019', category: 'car', cam: 4, time: '10:20:12', danger: false },
-  { id: 'ID_020', category: 'truck', cam: 1, time: '10:19:55', danger: false },
-])
+const trackingList = ref<{ id: string; category: string; cam: number; time: string; danger: boolean }[]>([])
 
 const colorPalette = [
   { bg: '#ff4757', text: '#fff' },
@@ -66,6 +63,84 @@ const tunnelVehicles = ref<TunnelVehicle[]>([])
 const activeCamera = ref(1)
 const videoRef = ref<HTMLVideoElement | null>(null)
 const isVideoPlaying = ref(false)
+const pyConnected = ref(false)
+
+const dialogVisible = ref(false)
+const streamStarting = ref(false)
+
+const rtspUrls = ref<string[]>([
+  localStorage.getItem('monitor_rtsp_cam01') || '',
+  localStorage.getItem('monitor_rtsp_cam02') || '',
+  localStorage.getItem('monitor_rtsp_cam03') || '',
+  localStorage.getItem('monitor_rtsp_cam04') || '',
+  localStorage.getItem('monitor_rtsp_cam05') || '',
+])
+
+function persistRtspUrls() {
+  rtspUrls.value.forEach((url, i) => {
+    localStorage.setItem(`monitor_rtsp_cam0${i + 1}`, url)
+  })
+}
+
+async function startAllStreams() {
+  if (!pyConnected.value) {
+    ElMessage.warning('Python 推理服务未连接，请检查服务状态')
+    return
+  }
+  streamStarting.value = true
+  let successCount = 0
+  let failCount = 0
+  for (let i = 0; i < 5; i++) {
+    const url = rtspUrls.value[i]
+    if (!url) {
+      ElMessage.warning(`Camera 0${i + 1} 未填写 RTSP 地址，已跳过`)
+      failCount++
+      continue
+    }
+    try {
+      await startDetection({ name: `Camera 0${i + 1}`, rtsp_url: url, position: i + 1 })
+      ElMessage.success(`Camera 0${i + 1} 已启动`)
+      successCount++
+    } catch {
+      ElMessage.error(`Camera 0${i + 1} 启动失败`)
+      failCount++
+    }
+  }
+  persistRtspUrls()
+  streamStarting.value = false
+  ElMessage({ message: `启动完成：成功 ${successCount}，失败 ${failCount}`, type: successCount === 5 ? 'success' : 'warning' })
+  fetchStreamList()
+}
+
+const streamList = ref<StreamInfo[]>([])
+let streamPollTimer: ReturnType<typeof setInterval> | null = null
+
+function fetchStreamList() {
+  getDetectionStreams()
+    .then(res => {
+      streamList.value = res.data.streams || []
+      stats.value.onlineCameras = streamList.value.filter(s => s.status === 'active').length
+    })
+    .catch(() => {
+      // 静默处理，避免轮询日志洪泛
+    })
+}
+
+const streamStatusMap = computed<Record<number, string>>(() => {
+  const map: Record<number, string> = {}
+  streamList.value.forEach(s => {
+    map[s.position] = s.status
+  })
+  return map
+})
+
+function getTunnelIconClass(camId: number): string {
+  const s = streamStatusMap.value[camId]
+  if (s === 'active') return 'bg-[#4b8df8] shadow-[0_0_8px_rgba(75,141,248,0.5)]'
+  if (s === 'connecting') return 'bg-[#f59e0b] shadow-[0_0_8px_rgba(245,158,11,0.5)]'
+  if (s === 'error') return 'bg-[#ff4e4e] shadow-[0_0_8px_rgba(255,78,78,0.5)]'
+  return 'bg-[#64748b]'
+}
 
 const detectionCanvasRef = ref<HTMLCanvasElement | null>(null)
 const {
@@ -85,9 +160,10 @@ function playCamera(camId: number) {
     isVideoPlaying.value = true
   }
 
-  const cam = cameras.value.find(c => c.id === camId)
-  if (cam && videoRef.value) {
-    playDirectHLS(cam.hlsUrl, videoRef.value)
+  const hlsUrl = rtspToHlsUrl(rtspUrls.value[camId - 1])
+  console.log(`Playing Camera ${camId} with HLS URL: ${hlsUrl}`)
+  if (hlsUrl && videoRef.value) {
+    playDirectHLS(hlsUrl, videoRef.value)
   }
 }
 
@@ -136,12 +212,7 @@ const initTypeChart = () => {
         emphasis: {
           label: { show: true, fontSize: 14, fontWeight: 'bold', color: '#fff' },
         },
-        data: [
-          { value: 45, name: '巴士', itemStyle: { color: '#4b8df8' } },
-          { value: 38, name: '卡车', itemStyle: { color: '#25f3e6' } },
-          { value: 25, name: '油罐车', itemStyle: { color: '#ff4e4e' } },
-          { value: 20, name: '其他', itemStyle: { color: '#ffff43' } },
-        ],
+        data: [],
       },
     ],
   }
@@ -277,22 +348,32 @@ function handleWsMessage(data: { type: string;[key: string]: any }) {
 onMounted(async () => {
   await fetchRealtimeData()
 
+  try {
+    const health = await healthCheck()
+    pyConnected.value = health.status === 'ok'
+    if (pyConnected.value) {
+      fetchStreamList()
+      streamPollTimer = setInterval(fetchStreamList, 20000)
+    }
+  } catch {
+    pyConnected.value = false
+  }
+
   await nextTick()
   initTypeChart()
   updateTypeChart()
 
   await startMonitoring()
   connectAlertSocket(handleWsMessage)
-  connectDetectionSocket(
-    (data) => {
-      drawFrame(data.vehicles)
-    },
-  )
 
   window.addEventListener('resize', handleEchartsResize)
 })
 
 onUnmounted(() => {
+  if (streamPollTimer) {
+    clearInterval(streamPollTimer)
+    streamPollTimer = null
+  }
   disconnectAlertSocket()
   disconnectDetectionSocket()
   stopStream()
@@ -301,12 +382,25 @@ onUnmounted(() => {
   videoRef.value?.pause()
   typeChart = null
 })
+
+watch(
+  streamList,
+  (list) => {
+    if (isDetectionConnected()) return
+    if (list.some(s => s.status === 'active')) {
+      connectDetectionSocket((data) => {
+        drawFrame(data.vehicles)
+      })
+    }
+  },
+  { deep: true },
+)
 </script>
 
 <template>
   <div class="min-h-[calc(100vh-80px)] bg-[#081832]">
     <div class="w-[98%] mx-auto py-4">
-      <div class="mb-5">
+      <div class="mb-5 flex items-center gap-3">
         <div
           class="inline-flex items-center bg-[#034c6a] rounded-[18px] px-7.5 py-2 text-white font-bold text-lg gap-2">
           <el-icon :size="20" color="#4b8df8">
@@ -314,6 +408,10 @@ onUnmounted(() => {
           </el-icon>
           实时监控
         </div>
+        <el-button :icon="VideoCamera" @click="dialogVisible = true"
+          class="!bg-[#034c6a] !border-[#034c6a] !text-[#e8f7fe] hover:!bg-[#04425f] hover:!border-[#04425f]">
+          配置推理流
+        </el-button>
       </div>
 
       <!-- Stat Cards -->
@@ -389,7 +487,8 @@ onUnmounted(() => {
                     <select :value="activeCamera" @change="onCameraSelect"
                       class="bg-transparent border border-white/20 text-white rounded px-1.5 py-0.5 text-xs outline-none cursor-pointer">
                       <option v-for="cam in cameras" :key="cam.id" :value="cam.id" class="bg-[#081832] text-white">
-                        {{ cam.name }} ({{ cam.status === 'online' ? '在线' : '离线' }})
+                        {{ cam.name }} ({{ streamStatusMap[cam.id] === 'active' ? '运行中' : streamStatusMap[cam.id] ===
+                          'connecting' ? '连接中' : streamStatusMap[cam.id] === 'error' ? '异常' : '未启动' }})
                       </option>
                     </select>
                   </div>
@@ -447,7 +546,8 @@ onUnmounted(() => {
                     <div class="flex justify-between items-center">
                       <span class="text-[#61d2f7] text-[13px]">服务器状态</span>
                       <span
-                        class="text-[12px] px-2.5 py-0.5 rounded-[10px] bg-[rgba(37,243,230,0.2)] text-[#25f3e6] border border-[#25f3e6]">运行中</span>
+                        :class="['text-[12px] px-2.5 py-0.5 rounded-[10px] border', pyConnected ? 'bg-[rgba(37,243,230,0.2)] text-[#25f3e6] border-[#25f3e6]' : 'bg-[rgba(255,78,78,0.2)] text-[#ff4e4e] border-[#ff4e4e]']">{{
+                          pyConnected ? '运行中' : '离线' }}</span>
                     </div>
                     <div class="flex justify-between items-center">
                       <span class="text-[#61d2f7] text-[13px]">数据库连接</span>
@@ -457,7 +557,8 @@ onUnmounted(() => {
                     <div class="flex justify-between items-center">
                       <span class="text-[#61d2f7] text-[13px]">AI 识别服务</span>
                       <span
-                        class="text-[12px] px-2.5 py-0.5 rounded-[10px] bg-[rgba(37,243,230,0.2)] text-[#25f3e6] border border-[#25f3e6]">运行中</span>
+                        :class="['text-[12px] px-2.5 py-0.5 rounded-[10px] border', pyConnected ? 'bg-[rgba(37,243,230,0.2)] text-[#25f3e6] border-[#25f3e6]' : 'bg-[rgba(255,78,78,0.2)] text-[#ff4e4e] border-[#ff4e4e]']">{{
+                          pyConnected ? '运行中' : '离线' }}</span>
                     </div>
                   </div>
                 </div>
@@ -483,7 +584,7 @@ onUnmounted(() => {
                     :style="{ left: `${(cam.id - 1) * 25}%`, transform: 'translate(-50%, -50%)' }"
                     @click="playCamera(cam.id)">
                     <div
-                      :class="['w-8 h-8 rounded-full flex items-center justify-center text-white text-sm transition-all duration-300', cam.status === 'online' ? 'bg-[#4b8df8]' : 'bg-[#64748b]', cam.status === 'online' ? 'shadow-[0_0_8px_rgba(75,141,248,0.5)]' : '', cam.id === activeCamera ? 'ring-2 ring-[#25f3e6] ring-offset-2 ring-offset-[#081832] shadow-[0_0_16px_rgba(37,243,230,0.7)] scale-110' : '']">
+                      :class="['w-8 h-8 rounded-full flex items-center justify-center text-white text-sm transition-all duration-300', getTunnelIconClass(cam.id), cam.id === activeCamera ? 'ring-2 ring-[#25f3e6] ring-offset-2 ring-offset-[#081832] shadow-[0_0_16px_rgba(37,243,230,0.7)] scale-110' : '']">
                       <el-icon>
                         <VideoCamera />
                       </el-icon>
@@ -509,6 +610,23 @@ onUnmounted(() => {
       </div>
     </div>
   </div>
+
+  <el-dialog v-model="dialogVisible" title="配置推理流" width="520px" :close-on-click-modal="false" class="monitor-dialog">
+    <div class="flex flex-col gap-3">
+      <div v-for="(_, i) in 5" :key="i" class="flex items-center gap-2">
+        <span class="text-white text-sm w-24 shrink-0">Camera 0{{ i + 1 }}</span>
+        <el-input v-model="rtspUrls[i]" placeholder="rtsp://..." size="small" class="flex-1" />
+        <span v-if="streamStatusMap[i + 1]"
+          :class="['text-[10px] px-2 py-0.5 rounded-[10px] border shrink-0', streamStatusMap[i + 1] === 'active' ? 'text-[#25f3e6] bg-[rgba(37,243,230,0.15)] border-[#25f3e6]' : streamStatusMap[i + 1] === 'connecting' ? 'text-[#f59e0b] bg-[rgba(245,158,11,0.15)] border-[#f59e0b]' : 'text-[#ff4e4e] bg-[rgba(255,78,78,0.15)] border-[#ff4e4e]']">{{
+            streamStatusMap[i + 1] === 'active' ? '运行中' : streamStatusMap[i + 1] === 'connecting' ? '连接中' :
+              streamStatusMap[i + 1] === 'stopped' ? '已停止' : '异常' }}</span>
+      </div>
+    </div>
+    <template #footer>
+      <el-button @click="dialogVisible = false">取消</el-button>
+      <el-button type="primary" :loading="streamStarting" @click="startAllStreams">启动全部</el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <style scoped>
@@ -557,5 +675,29 @@ onUnmounted(() => {
 .overflow-y-auto::-webkit-scrollbar-thumb {
   background: #034c6a;
   border-radius: 2px;
+}
+</style>
+
+<style>
+.monitor-dialog {
+  --el-dialog-bg-color: #081832;
+  --el-dialog-title-font-color: #e8f7fe;
+}
+
+.monitor-dialog .el-dialog__header {
+  border-bottom: 1px solid #034c6a;
+}
+
+.monitor-dialog .el-dialog__footer {
+  border-top: 1px solid #034c6a;
+}
+
+.monitor-dialog .el-input__wrapper {
+  background-color: #072951;
+  box-shadow: 0 0 0 1px #034c6a inset;
+}
+
+.monitor-dialog .el-input__inner {
+  color: #e8f7fe;
 }
 </style>

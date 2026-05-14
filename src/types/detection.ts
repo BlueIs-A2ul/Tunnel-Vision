@@ -67,8 +67,11 @@ export interface StartStreamResponse {
 /** 获取检测流列表响应 */
 export interface GetStreamsResponse {
   code: number
-  message: string
-  data: StreamInfo[]
+  message?: string
+  data: {
+    streams: StreamInfo[]
+    total: number
+  }
 }
 
 /** 通用操作响应 */

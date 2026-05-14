@@ -46,3 +46,11 @@ export function getDetectionStreams(): Promise<GetStreamsResponse> {
 export function stopDetection(streamId: string): Promise<StreamOpResponse> {
   return pythonApi.delete(`/api/stream/${streamId}`)
 }
+
+/**
+ * 健康检查
+ * GET /api/health
+ */
+export function healthCheck(): Promise<{ status: string; timestamp: number }> {
+  return pythonApi.get('/api/health')
+}
