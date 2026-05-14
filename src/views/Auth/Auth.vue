@@ -162,7 +162,7 @@ function goToLogin() {
                 <User />
               </el-icon>
             </span>
-            <input v-model="loginForm.username" type="text" placeholder="请输入用户名" class="auth-input-native" />
+            <input v-model="loginForm.username" type="text" placeholder="请输入用户名" autocomplete="username" class="auth-input-native" />
           </div>
         </el-form-item>
 
@@ -173,7 +173,7 @@ function goToLogin() {
                 <Lock />
               </el-icon>
             </span>
-            <input v-model="loginForm.password" type="password" placeholder="请输入密码" class="auth-input-native" />
+            <input v-model="loginForm.password" type="password" placeholder="请输入密码" autocomplete="current-password" class="auth-input-native" />
           </div>
         </el-form-item>
 
@@ -208,7 +208,7 @@ function goToLogin() {
                 <Lock />
               </el-icon>
             </span>
-            <input v-model="registerForm.password" type="password" placeholder="请输入密码(至少6个字符)"
+            <input v-model="registerForm.password" type="password" placeholder="请输入密码(至少6个字符)" autocomplete="new-password"
               class="auth-input-native" />
           </div>
         </el-form-item>
@@ -220,7 +220,7 @@ function goToLogin() {
                 <Lock />
               </el-icon>
             </span>
-            <input v-model="registerForm.confirmPassword" type="password" placeholder="请再次输入密码"
+            <input v-model="registerForm.confirmPassword" type="password" placeholder="请再次输入密码" autocomplete="new-password"
               class="auth-input-native" />
           </div>
         </el-form-item>
