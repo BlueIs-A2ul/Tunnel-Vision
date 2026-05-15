@@ -113,6 +113,7 @@ async function startAllStreams() {
 }
 
 const streamList = ref<StreamInfo[]>([])
+const streamIdToCam = ref<Record<string, number>>({})
 let streamPollTimer: ReturnType<typeof setInterval> | null = null
 
 function fetchStreamList() {
@@ -120,6 +121,11 @@ function fetchStreamList() {
     .then(res => {
       streamList.value = res.data.streams || []
       stats.value.onlineCameras = streamList.value.filter(s => s.status === 'active').length
+      const map: Record<string, number> = {}
+      streamList.value.forEach(s => {
+        map[s.stream_id] = s.position
+      })
+      streamIdToCam.value = map
     })
     .catch(() => {
       // 静默处理，避免轮询日志洪泛
@@ -367,6 +373,13 @@ onMounted(async () => {
   connectAlertSocket(handleWsMessage)
 
   window.addEventListener('resize', handleEchartsResize)
+
+  if (import.meta.env.DEV) {
+    ;(window as any).__setStreamIdMap = (map: Record<string, number>) => {
+      streamIdToCam.value = map
+      console.log('[Dev] 流映射已注入:', map, '当前选中摄像头:', activeCamera.value)
+    }
+  }
 })
 
 onUnmounted(() => {
@@ -389,7 +402,10 @@ watch(
     if (isDetectionConnected()) return
     if (list.some(s => s.status === 'active')) {
       connectDetectionSocket((data) => {
-        drawFrame(data.vehicles)
+        const cam = streamIdToCam.value[data.stream_id]
+        if (cam === activeCamera.value) {
+          drawFrame(data.vehicles)
+        }
       })
     }
   },

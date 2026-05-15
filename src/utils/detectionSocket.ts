@@ -9,6 +9,8 @@ const SOCKET_URL = import.meta.env.VITE_API_PYTHON_BASE_URL
 const NAMESPACE = '/ws/events'
 
 let socket: Socket | null = null
+let _onResult: OnDetectionResult | undefined
+let _onStats: OnStats | undefined
 
 export type OnDetectionResult = (data: DetectionResultData) => void
 export type OnStats = (data: StatsPayload['data']) => void
@@ -21,6 +23,9 @@ export function connectDetectionSocket(
   onResult?: OnDetectionResult,
   onStats?: OnStats,
 ) {
+  _onResult = onResult
+  _onStats = onStats
+
   if (socket?.connected) return socket
 
   socket = io(`${SOCKET_URL}${NAMESPACE}`, {
@@ -35,11 +40,17 @@ export function connectDetectionSocket(
 
   socket.on('result', (payload: ResultPayload) => {
     if (payload?.type !== 'vehicle_detected') return
+    if (payload.data?.vehicles?.length) {
+      console.log('[Detection] 收到检测结果:', payload.data)
+    }
     onResult?.(payload.data)
   })
 
   socket.on('stats', (payload: StatsPayload) => {
-    onStats?.(payload.data)
+    if (payload.data?.total_vehicles !== 0) {
+      console.log('[Detection] 收到统计数据:', payload.data)
+    }
+    _onStats?.(payload.data)
   })
 
   socket.on('disconnect', (reason: any) => {
@@ -62,4 +73,28 @@ export function disconnectDetectionSocket() {
 /** 判断连接是否活跃 */
 export function isDetectionConnected(): boolean {
   return socket?.connected ?? false
+}
+
+/**
+ * 模拟检测结果（仅开发环境使用）
+ * 使用方式：浏览器 Console 中调用 window.__mockDetectionResult(streamId, vehicles)
+ */
+export function mockDetectionResult(streamId: string, vehicles: DetectionResultData['vehicles']) {
+  if (!_onResult) {
+    console.warn('[Detection Mock] 检测回调未注册，请先连接检测 WebSocket')
+    return
+  }
+  const data: DetectionResultData = {
+    stream_id: streamId,
+    frame_id: Date.now(),
+    timestamp: Date.now(),
+    vehicles,
+    stats: { fps: 30, inference_ms: 50 },
+  }
+  console.log('[Detection Mock] 注入假检测结果:', data)
+  _onResult(data)
+}
+
+if (import.meta.env.DEV) {
+  ;(window as any).__mockDetectionResult = mockDetectionResult
 }
