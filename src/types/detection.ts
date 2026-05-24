@@ -2,6 +2,16 @@
  * 视频重识别检测结果相关类型
  */
 
+/** 实时画框用的轨迹信息 */
+export interface TrackInfo {
+  track_id: number
+  vehicle_id: string
+  category: string
+  bbox: [number, number, number, number]
+  similarity: number
+  identified: boolean
+}
+
 /** 车辆检测信息 */
 export interface DetectionVehicle {
   vehicle_id: string
@@ -10,6 +20,10 @@ export interface DetectionVehicle {
   confidence: number
   track_id: number
   similarity: number
+  image_filename: string
+  camera_role: string
+  status: string
+  image_url: string
 }
 
 /** 检测帧统计数据 */
@@ -20,9 +34,10 @@ export interface DetectionStats {
 
 /** result 事件中 vehicle_detected 类型的实际数据载荷 */
 export interface DetectionResultData {
-  stream_id: string
+  stream_id: number
   frame_id: number
   timestamp: number
+  tracks: TrackInfo[]
   vehicles: DetectionVehicle[]
   stats: DetectionStats
 }
@@ -33,10 +48,21 @@ export interface ResultPayload {
   data: DetectionResultData
 }
 
+/** stats 事件的数据载荷 */
+export interface StatsData {
+  total_vehicles: number
+  bus: number
+  truck: number
+  tanker: number
+  active_streams: number
+  fps: number
+  inference_ms: number
+}
+
 /** stats 事件的完整 payload */
 export interface StatsPayload {
   type: 'stats'
-  data: Record<string, unknown>
+  data: StatsData
 }
 
 /** 开启检测流请求体 */
@@ -48,7 +74,7 @@ export interface StartStreamRequest {
 
 /** 单个检测流信息 */
 export interface StreamInfo {
-  stream_id: string
+  stream_id: number
   name: string
   rtsp_url: string
   position: number

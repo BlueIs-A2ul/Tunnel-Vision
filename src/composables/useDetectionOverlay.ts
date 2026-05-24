@@ -1,19 +1,67 @@
 import { ref } from 'vue'
-import type { DetectionVehicle } from '@/types/detection'
+import type { TrackInfo } from '@/types/detection'
+
+interface TrackCacheEntry {
+  tracks: TrackInfo[]
+  receivedAt: number
+}
+
+const STALE_MS = 300
 
 export function useDetectionOverlay() {
   const canvasRef = ref<HTMLCanvasElement | null>(null)
   let videoEl: HTMLVideoElement | null = null
   let ctx: CanvasRenderingContext2D | null = null
+  let activeStream = -1
+  let rafId: number | null = null
+  const trackCache = new Map<number, TrackCacheEntry>()
 
   function init(video: HTMLVideoElement, canvas: HTMLCanvasElement) {
     videoEl = video
     canvasRef.value = canvas
     ctx = canvas.getContext('2d')
+    startRenderLoop()
   }
 
-  /** 收到 detection result 后直接调用绘制 */
-  function drawFrame(vehicles: DetectionVehicle[]) {
+  function startRenderLoop() {
+    if (rafId !== null) return
+    const loop = () => {
+      render()
+      rafId = requestAnimationFrame(loop)
+    }
+    rafId = requestAnimationFrame(loop)
+  }
+
+  function stopRenderLoop() {
+    if (rafId !== null) {
+      cancelAnimationFrame(rafId)
+      rafId = null
+    }
+  }
+
+  function render() {
+    if (activeStream < 0) return
+
+    const entry = trackCache.get(activeStream)
+    if (!entry) return
+
+    if (performance.now() - entry.receivedAt > STALE_MS) {
+      clearCanvas()
+      return
+    }
+
+    drawBoxes(entry.tracks)
+  }
+
+  function clearCanvas() {
+    const c = canvasRef.value
+    if (!c || !ctx) return
+    const dpr = window.devicePixelRatio || 1
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    ctx.clearRect(0, 0, c.width / dpr, c.height / dpr)
+  }
+
+  function drawBoxes(tracks: TrackInfo[]) {
     const c = canvasRef.value
     if (!c || !videoEl || !ctx || !videoEl.videoWidth || !videoEl.videoHeight) return
 
@@ -49,8 +97,8 @@ export function useDetectionOverlay() {
     const scaleX = drawW / videoEl.videoWidth
     const scaleY = drawH / videoEl.videoHeight
 
-    for (const vehicle of vehicles) {
-      const [x1, y1, x2, y2] = vehicle.bbox
+    for (const track of tracks) {
+      const [x1, y1, x2, y2] = track.bbox
       const left = offsetX + x1 * scaleX
       const top = offsetY + y1 * scaleY
       const width = (x2 - x1) * scaleX
@@ -63,18 +111,32 @@ export function useDetectionOverlay() {
       ctx.font = '14px sans-serif'
       ctx.fillStyle = '#20e070'
       ctx.fillText(
-        `${vehicle.vehicle_id} ${vehicle.category} ${vehicle.similarity.toFixed(2)}`,
+        `${track.vehicle_id} ${track.category} ${track.similarity.toFixed(2)}`,
         left,
         Math.max(14, top - 6),
       )
     }
   }
 
+  function updateTracks(_streamId: number, tracks: TrackInfo[]) {
+    trackCache.set(_streamId, { tracks, receivedAt: performance.now() })
+  }
+
+  function setActiveStream(streamId: number) {
+    if (activeStream !== streamId) {
+      activeStream = streamId
+      clearCanvas()
+    }
+  }
+
   function dispose() {
+    stopRenderLoop()
+    trackCache.clear()
+    activeStream = -1
     videoEl = null
     canvasRef.value = null
     ctx = null
   }
 
-  return { canvasRef, init, drawFrame, dispose }
+  return { canvasRef, init, updateTracks, setActiveStream, dispose }
 }

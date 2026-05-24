@@ -41,10 +41,10 @@ export function getDetectionStreams(): Promise<GetStreamsResponse> {
 
 /**
  * 停止指定检测流推理
- * DELETE /api/stream/<stream_id>
+ * DELETE /api/stream/<position>
  */
-export function stopDetection(streamId: string): Promise<StreamOpResponse> {
-  return pythonApi.delete(`/api/stream/${streamId}`)
+export function stopDetection(position: number): Promise<StreamOpResponse> {
+  return pythonApi.delete(`/api/stream/${position}`)
 }
 
 /**

@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import * as echarts from 'echarts'
 import { VideoCamera } from '@element-plus/icons-vue'
 import { startMonitoring } from '@/api/realtime'
 import type { StreamInfo } from '@/types/detection'
-import { healthCheck, startDetection, getDetectionStreams } from '@/api/stream'
+import { healthCheck, startDetection, getDetectionStreams, stopDetection } from '@/api/stream'
 import { connectAlertSocket, disconnectAlertSocket } from '@/utils/socket'
 import { connectDetectionSocket, disconnectDetectionSocket, isDetectionConnected } from '@/utils/detectionSocket'
 import { useDetectionOverlay } from '@/composables/useDetectionOverlay'
 import { playDirectHLS, stopStream } from '@/utils/webrtc'
 import { rtspToHlsUrl } from '@/utils/hlsMapper'
+import StatCards from './components/StatCards.vue'
+import VehicleTypeChart from './components/VehicleTypeChart.vue'
+import SystemStatus from './components/SystemStatus.vue'
 
 
 const cameras = ref([
@@ -112,8 +114,19 @@ async function startAllStreams() {
   fetchStreamList()
 }
 
+async function stopSingleStream(camIndex: number) {
+  const streamId = camIndex + 1
+  try {
+    await stopDetection(streamId)
+    ElMessage.success(`Camera 0${camIndex + 1} 已停止`)
+    fetchStreamList()
+  } catch {
+    ElMessage.error(`Camera 0${camIndex + 1} 停止失败`)
+  }
+}
+
 const streamList = ref<StreamInfo[]>([])
-const streamIdToCam = ref<Record<string, number>>({})
+const streamIdToCam = ref<Record<number, number>>({})
 let streamPollTimer: ReturnType<typeof setInterval> | null = null
 
 function fetchStreamList() {
@@ -121,7 +134,7 @@ function fetchStreamList() {
     .then(res => {
       streamList.value = res.data.streams || []
       stats.value.onlineCameras = streamList.value.filter(s => s.status === 'active').length
-      const map: Record<string, number> = {}
+      const map: Record<number, number> = {}
       streamList.value.forEach(s => {
         map[s.stream_id] = s.position
       })
@@ -151,7 +164,8 @@ function getTunnelIconClass(camId: number): string {
 const detectionCanvasRef = ref<HTMLCanvasElement | null>(null)
 const {
   init: initDetection,
-  drawFrame,
+  updateTracks,
+  setActiveStream,
   dispose: disposeDetection,
 } = useDetectionOverlay()
 
@@ -171,6 +185,8 @@ function playCamera(camId: number) {
   if (hlsUrl && videoRef.value) {
     playDirectHLS(hlsUrl, videoRef.value)
   }
+
+  setActiveStream(camId)
 }
 
 function onCameraSelect(e: Event) {
@@ -187,59 +203,8 @@ function onVideoEnded() {
   isVideoPlaying.value = false
 }
 
-let typeChart: echarts.ECharts | null = null
-const handleEchartsResize = () => {
-  typeChart?.resize()
-}
-
-const darkTooltip: echarts.EChartsOption['tooltip'] = {
-  backgroundColor: 'rgba(3, 8, 41, 0.9)',
-  borderColor: '#034c6a',
-  textStyle: { color: '#ffffff' },
-}
-
-const initTypeChart = () => {
-  const chartDom = document.getElementById('typeChart')
-  if (!chartDom) return
-
-  typeChart = echarts.init(chartDom)
-  const option: echarts.EChartsOption = {
-    tooltip: { ...darkTooltip, trigger: 'item' },
-    legend: { bottom: '5%', left: 'center', textStyle: { color: '#ffffff' } },
-    series: [
-      {
-        name: '车辆类型',
-        type: 'pie',
-        radius: ['40%', '70%'],
-        center: ['50%', '45%'],
-        avoidLabelOverlap: false,
-        itemStyle: { borderRadius: 4, borderColor: '#081832', borderWidth: 2 },
-        label: { show: false },
-        emphasis: {
-          label: { show: true, fontSize: 14, fontWeight: 'bold', color: '#fff' },
-        },
-        data: [],
-      },
-    ],
-  }
-  typeChart.setOption(option)
-}
-
 async function fetchRealtimeData() {
   // data driven by WebSocket
-}
-
-function updateTypeChart() {
-  if (!typeChart) return
-  typeChart.setOption({
-    series: [{
-      data: [
-        { value: stats.value.busCount, name: '巴士', itemStyle: { color: '#4b8df8' } },
-        { value: stats.value.truckCount, name: '卡车', itemStyle: { color: '#25f3e6' } },
-        { value: stats.value.tankerCount, name: '油罐车', itemStyle: { color: '#ff4e4e' } },
-      ],
-    }],
-  })
 }
 
 const getCategoryLabel = (category: string) => {
@@ -277,12 +242,7 @@ function handleWsMessage(data: { type: string;[key: string]: any }) {
         trackingList.value[idx] = entry
       } else {
         trackingList.value.unshift(entry)
-        stats.value.totalVehicles++
-        if (data.category === 'bus') stats.value.busCount++
-        else if (data.category === 'truck') stats.value.truckCount++
-        else if (data.category === 'tanker') stats.value.tankerCount++
       }
-      updateTypeChart()
 
       const camNumber = parseInt((data.camera_id || '').replace('cam_', ''), 10) || 0
       const vid = data.vehicle_id
@@ -306,10 +266,6 @@ function handleWsMessage(data: { type: string;[key: string]: any }) {
     case 'stats': {
       const oldDangerMap: Record<string, boolean> = {}
       trackingList.value.forEach(v => { if (v.danger) oldDangerMap[v.id] = true })
-      stats.value.totalVehicles = data.totalVehicleCount
-      stats.value.busCount = data.busCount
-      stats.value.truckCount = data.truckCount
-      stats.value.tankerCount = data.tankerCount
       trackingList.value = (data.currentVehicles || []).map((v: any) => ({
         id: v.vehicleId,
         category: v.category,
@@ -317,7 +273,6 @@ function handleWsMessage(data: { type: string;[key: string]: any }) {
         time: new Date(v.timestamp).toLocaleTimeString('zh-CN', { hour12: false }),
         danger: oldDangerMap[v.vehicleId] || false,
       }))
-      updateTypeChart()
 
       const oldTunnelMap = new Map(tunnelVehicles.value.map(v => [v.id, { left: v.left, category: v.category }]))
       tunnelVehicles.value = (data.currentVehicles || []).map((v: any) => {
@@ -366,16 +321,12 @@ onMounted(async () => {
   }
 
   await nextTick()
-  initTypeChart()
-  updateTypeChart()
 
   await startMonitoring()
   connectAlertSocket(handleWsMessage)
 
-  window.addEventListener('resize', handleEchartsResize)
-
   if (import.meta.env.DEV) {
-    ;(window as any).__setStreamIdMap = (map: Record<string, number>) => {
+    ;(window as any).__setStreamIdMap = (map: Record<number, number>) => {
       streamIdToCam.value = map
       console.log('[Dev] 流映射已注入:', map, '当前选中摄像头:', activeCamera.value)
     }
@@ -390,10 +341,13 @@ onUnmounted(() => {
   disconnectAlertSocket()
   disconnectDetectionSocket()
   stopStream()
+  streamList.value.forEach(s => {
+    if (s.status === 'active' || s.status === 'connecting') {
+      stopDetection(s.stream_id).catch(() => {})
+    }
+  })
   disposeDetection()
-  window.removeEventListener('resize', handleEchartsResize)
   videoRef.value?.pause()
-  typeChart = null
 })
 
 watch(
@@ -401,12 +355,18 @@ watch(
   (list) => {
     if (isDetectionConnected()) return
     if (list.some(s => s.status === 'active')) {
-      connectDetectionSocket((data) => {
-        const cam = streamIdToCam.value[data.stream_id]
-        if (cam === activeCamera.value) {
-          drawFrame(data.vehicles)
-        }
-      })
+      connectDetectionSocket(
+        (data) => {
+          updateTracks(data.stream_id, data.tracks)
+        },
+        (statsData) => {
+          stats.value.totalVehicles = statsData.total_vehicles
+          stats.value.busCount = statsData.bus
+          stats.value.truckCount = statsData.truck
+          stats.value.tankerCount = statsData.tanker
+          stats.value.onlineCameras = statsData.active_streams
+        },
+      )
     }
   },
   { deep: true },
@@ -431,32 +391,7 @@ watch(
       </div>
 
       <!-- Stat Cards -->
-      <div class="flex flex-wrap gap-[1%] mb-4">
-        <div class="w-[15.66%] bg-[#034c6a] rounded-lg p-4 text-center">
-          <div class="text-[28px] font-bold text-[#ffff43] leading-tight">{{ stats.totalVehicles }}</div>
-          <div class="text-xs text-[#e8f7fe] mt-1">总车辆数</div>
-        </div>
-        <div class="w-[15.66%] bg-[#034c6a] rounded-lg p-4 text-center">
-          <div class="text-[28px] font-bold text-[#25f3e6] leading-tight">{{ stats.busCount }}</div>
-          <div class="text-xs text-[#e8f7fe] mt-1">巴士</div>
-        </div>
-        <div class="w-[15.66%] bg-[#034c6a] rounded-lg p-4 text-center">
-          <div class="text-[28px] font-bold text-[#4b8df8] leading-tight">{{ stats.truckCount }}</div>
-          <div class="text-xs text-[#e8f7fe] mt-1">卡车</div>
-        </div>
-        <div class="w-[15.66%] bg-[#034c6a] rounded-lg p-4 text-center">
-          <div class="text-[28px] font-bold text-[#ff4e4e] leading-tight">{{ stats.tankerCount }}</div>
-          <div class="text-xs text-[#e8f7fe] mt-1">油罐车</div>
-        </div>
-        <div class="w-[15.66%] bg-[#034c6a] rounded-lg p-4 text-center">
-          <div class="text-[28px] font-bold text-[#ffff43] leading-tight">{{ stats.onlineCameras }}</div>
-          <div class="text-xs text-[#e8f7fe] mt-1">在线摄像头</div>
-        </div>
-        <div class="w-[15.66%] bg-[#034c6a] rounded-lg p-4 text-center">
-          <div class="text-[28px] font-bold text-[#ff4e4e] leading-tight">{{ stats.todayWarnings }}</div>
-          <div class="text-xs text-[#e8f7fe] mt-1">今日预警</div>
-        </div>
-      </div>
+      <StatCards :stats="stats" />
 
       <!-- Main Content -->
       <div class="flex gap-4">
@@ -538,47 +473,8 @@ watch(
             </div>
             <!-- 车辆类型分布 + 系统状态 -->
             <div class="w-[35%] min-w-0">
-              <div class="relative border border-[#034c6a] rounded-lg mt-6 mb-4
-                shadow-[-10px_0_15px_#034c6a_inset,0_-10px_15px_#034c6a_inset,10px_0_15px_#034c6a_inset,0_10px_15px_#034c6a_inset]
-                box-border">
-                <div
-                  class="absolute -top-3.75 left-[20%] bg-[#034c6a] rounded-[18px] h-8.75 w-3/5 leading-8.75 text-center text-sm font-bold text-white z-10 flex items-center justify-center gap-2 px-3 box-border">
-                  车辆类型分布
-                </div>
-                <div class="pt-5 px-2 pb-2">
-                  <div id="typeChart" class="h-80"></div>
-                </div>
-              </div>
-
-              <div class="relative border border-[#034c6a] rounded-lg mt-6 mb-4
-                shadow-[-10px_0_15px_#034c6a_inset,0_-10px_15px_#034c6a_inset,10px_0_15px_#034c6a_inset,0_10px_15px_#034c6a_inset]
-                box-border">
-                <div
-                  class="absolute -top-3.75 left-[20%] bg-[#034c6a] rounded-[18px] h-8.75 w-3/5 leading-8.75 text-center text-sm font-bold text-white z-10 flex items-center justify-center gap-2 px-3 box-border">
-                  系统状态
-                </div>
-                <div class="pt-5 px-5 pb-5">
-                  <div class="flex flex-col gap-3">
-                    <div class="flex justify-between items-center">
-                      <span class="text-[#61d2f7] text-[13px]">服务器状态</span>
-                      <span
-                        :class="['text-[12px] px-2.5 py-0.5 rounded-[10px] border', pyConnected ? 'bg-[rgba(37,243,230,0.2)] text-[#25f3e6] border-[#25f3e6]' : 'bg-[rgba(255,78,78,0.2)] text-[#ff4e4e] border-[#ff4e4e]']">{{
-                          pyConnected ? '运行中' : '离线' }}</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                      <span class="text-[#61d2f7] text-[13px]">数据库连接</span>
-                      <span
-                        class="text-[12px] px-2.5 py-0.5 rounded-[10px] bg-[rgba(37,243,230,0.2)] text-[#25f3e6] border border-[#25f3e6]">正常</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                      <span class="text-[#61d2f7] text-[13px]">AI 识别服务</span>
-                      <span
-                        :class="['text-[12px] px-2.5 py-0.5 rounded-[10px] border', pyConnected ? 'bg-[rgba(37,243,230,0.2)] text-[#25f3e6] border-[#25f3e6]' : 'bg-[rgba(255,78,78,0.2)] text-[#ff4e4e] border-[#ff4e4e]']">{{
-                          pyConnected ? '运行中' : '离线' }}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <VehicleTypeChart :busCount="stats.busCount" :truckCount="stats.truckCount" :tankerCount="stats.tankerCount" />
+              <SystemStatus :pyConnected="pyConnected" />
             </div>
           </div>
           <!-- Bottom Section: 隧道模拟视图 -->
@@ -636,6 +532,8 @@ watch(
           :class="['text-[10px] px-2 py-0.5 rounded-[10px] border shrink-0', streamStatusMap[i + 1] === 'active' ? 'text-[#25f3e6] bg-[rgba(37,243,230,0.15)] border-[#25f3e6]' : streamStatusMap[i + 1] === 'connecting' ? 'text-[#f59e0b] bg-[rgba(245,158,11,0.15)] border-[#f59e0b]' : 'text-[#ff4e4e] bg-[rgba(255,78,78,0.15)] border-[#ff4e4e]']">{{
             streamStatusMap[i + 1] === 'active' ? '运行中' : streamStatusMap[i + 1] === 'connecting' ? '连接中' :
               streamStatusMap[i + 1] === 'stopped' ? '已停止' : '异常' }}</span>
+        <el-button v-if="streamStatusMap[i + 1] === 'active' || streamStatusMap[i + 1] === 'connecting'" size="small"
+          type="danger" text @click="stopSingleStream(i)">停止</el-button>
       </div>
     </div>
     <template #footer>
