@@ -40,15 +40,14 @@ export function connectDetectionSocket(
 
   socket.on('result', (payload: ResultPayload) => {
     if (payload?.type !== 'vehicle_detected') return
-    if (payload.data?.vehicles?.length) {
+    if (payload.data.tracks.length > 0 && payload.data.stream_id === 2) {
       console.log('[Detection] 收到检测结果:', payload.data)
     }
-    onResult?.(payload.data)
+    if (payload.data) onResult?.(payload.data)
   })
 
   socket.on('stats', (payload: StatsPayload) => {
     if (payload.data?.total_vehicles !== 0) {
-      console.log('[Detection] 收到统计数据:', payload.data)
     }
     _onStats?.(payload.data)
   })
@@ -79,7 +78,10 @@ export function isDetectionConnected(): boolean {
  * 模拟检测结果（仅开发环境使用）
  * 使用方式：浏览器 Console 中调用 window.__mockDetectionResult(streamId, vehicles)
  */
-export function mockDetectionResult(streamId: string, vehicles: DetectionResultData['vehicles']) {
+export function mockDetectionResult(
+  streamId: number,
+  vehicles: DetectionResultData['vehicles'],
+) {
   if (!_onResult) {
     console.warn('[Detection Mock] 检测回调未注册，请先连接检测 WebSocket')
     return
@@ -88,6 +90,7 @@ export function mockDetectionResult(streamId: string, vehicles: DetectionResultD
     stream_id: streamId,
     frame_id: Date.now(),
     timestamp: Date.now(),
+    tracks: [],
     vehicles,
     stats: { fps: 30, inference_ms: 50 },
   }
